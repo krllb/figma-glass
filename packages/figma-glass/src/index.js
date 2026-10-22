@@ -638,7 +638,7 @@ function attach(node, options) {
   function reset() {
     node.style.backdropFilter = saved.backdropFilter;
     node.style.webkitBackdropFilter = saved.webkitBackdropFilter;
-    layer.style.filter = layer.style.backdropFilter = layer.style.backgroundImage = layer.style.backgroundColor = layer.style.backgroundSize = layer.style.transform = '';
+    layer.style.filter = layer.style.backdropFilter = layer.style.backgroundImage = layer.style.backgroundColor = layer.style.backgroundSize = layer.style.transform = layer.style.mask = layer.style.webkitMask = '';
     layer.style.display = 'none';
     light.style.backgroundImage = '';
     if (mirror && (state.mode !== 'mirror' || mirror.source !== o.source)) { mirror.destroy(); mirror = null; }
@@ -715,9 +715,15 @@ function attach(node, options) {
       node.style.backdropFilter = node.style.webkitBackdropFilter = `blur(${o.frost * o.frostScale}px)`;
       light.style.backgroundImage = `url(${whiteUrl(b)})`;
     } else {
-      // The lens overhangs the glass by the frost reach and is clipped back to its shape.
+      // The lens overhangs the glass by the frost reach and is cut back to its shape twice: inside an
+      // ancestor with border-radius and overflow: hidden, Chrome's GPU raster drops clip-path's rounding
+      // and shows the frost as a rectangle, and Safari ignores the mask on the filtered lens.
       pad = Math.ceil(3 * o.frost * o.frostScale) + 2;
-      Object.assign(layer.style, { display: '', inset: inset(pad), borderRadius: '0',
+      const lw = w + 2 * pad, lh = h + 2 * pad;
+      const shape = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${lw} ${lh}" preserveAspectRatio="none">`
+        + `<rect x="${pad}" y="${pad}" width="${w}" height="${h}" rx="${radius}"/></svg>`;
+      const mask = `url("data:image/svg+xml,${encodeURIComponent(shape)}") 0 0 / 100% 100% no-repeat`;
+      Object.assign(layer.style, { display: '', inset: inset(pad), borderRadius: '0', mask, webkitMask: mask,
         clipPath: `inset(${pad}px round ${radius}px)` });
       const next = mode === 'backdrop' ? 'backdropFilter' : 'filter';
       // The previous glass stays until the new maps have loaded: a filter whose map is not loaded yet

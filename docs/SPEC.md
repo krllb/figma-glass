@@ -91,6 +91,10 @@ Chromium pitfalls:
   came out half as strong. Kernels are built for `devicePixelRatio`.
 - `backdrop-filter` sees the backdrop only inside its own element, hence the oversized lens.
 - `mix-blend-mode` on a sibling layer isolates the group, and the lens gets an empty backdrop.
+- Inside an ancestor with both `border-radius` and `overflow: hidden`, Chrome's GPU raster drops the
+  rounding of `clip-path: inset(... round r)` on the lens and shows the frost as a rectangle (software
+  raster, as in headless containers, keeps it). The lens also gets an SVG mask of the same rounded
+  rectangle; Safari ignores that mask on the filtered lens, so both stay.
 
 ## Calibration (levels out of 255, inside the shape)
 
