@@ -54,19 +54,19 @@
   @keyframes run { to { transform: translateX(-50%); } }
   @media (prefers-reduced-motion: reduce) { .marquee span { animation: none; } }
 
-  .render { display: flex; align-items: center; gap: 12px; margin-top: 12px; font-size: 13px; color: var(--muted); }
-  .seg { display: inline-flex; background: #e6e6e3; border-radius: 8px; padding: 2px; }
-  .seg button { border: 0; background: none; font: inherit; color: var(--ink); padding: 4px 12px; border-radius: 6px; cursor: pointer; }
-  .seg button[aria-pressed=true] { background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
   .glass { position: absolute; width: 44%; height: 18%; cursor: grab; touch-action: none; z-index: 10; }
   .glass.dragging { cursor: grabbing; }
 
-  /* Figma's Glass properties, nothing else. */
+  /* Figma's Glass properties, and below them the preview's own settings in the same style. */
+  .panels { display: grid; gap: 8px; }
   .panel { background: var(--panel); color: var(--text); border-radius: 13px; padding: 4px 0 8px;
     font: 11px/16px Inter, system-ui, -apple-system, sans-serif; box-shadow: 0 2px 14px rgba(0,0,0,.15); }
   .panel h2 { font-size: 11px; font-weight: 600; margin: 0; padding: 8px 16px; }
-  .row { display: grid; grid-template-columns: 72px 1fr 44px; align-items: center; gap: 8px; height: 32px; padding: 0 16px; }
-  .row.light { grid-template-columns: 72px 1fr 1fr; }
+  .row { display: grid; grid-template-columns: 64px 1fr 60px; align-items: center; gap: 8px; height: 32px; padding: 0 16px; }
+  .row.wide { grid-template-columns: 64px 1fr; }
+  .seg { display: flex; height: 24px; padding: 2px; background: var(--field); border-radius: 5px; }
+  .seg button { flex: 1; border: 0; border-radius: 4px; background: none; color: #a8a8a8; font: inherit; cursor: pointer; }
+  .seg button[aria-pressed=true] { background: #4b4b4b; color: var(--text); }
   .field { height: 24px; background: var(--field); border-radius: 5px; display: flex; align-items: center; gap: 4px; padding: 0 6px; }
   .field input { width: 100%; min-width: 0; background: none; border: 0; color: var(--text); font: inherit; padding: 0; outline: none; }
   .field:focus-within { box-shadow: inset 0 0 0 1px var(--accent); }
@@ -125,23 +125,26 @@
       </div>
       <div class="glass" id="glass" aria-label="Draggable glass"></div>
     </div>
-    <div class="render">Render
-      <span class="seg" id="render"><button data-mode="auto">Auto</button><button data-mode="mirror">Mirror</button><button data-mode="fallback">Fallback</button></span>
-      <span id="engine"></span>
-    </div>
     </div>
 
-    <aside class="panel" data-glass-ignore>
+    <div class="panels" data-glass-ignore>
+    <aside class="panel">
       <h2>Glass</h2>
-      <div class="row light"><label>Light</label>
-        <span class="field"><span class="dial" id="dial"></span><input data-k="lightAngle" data-unit="°" inputmode="numeric" aria-label="Light angle"></span>
-        <span class="field"><input data-k="lightIntensity" data-pct data-unit="%" inputmode="numeric" aria-label="Light intensity"></span></div>
+      <div class="row"><label>Light</label><input type="range" data-k="lightIntensity" data-pct min="0" max="100" aria-label="Light intensity"><span class="field"><input data-k="lightIntensity" data-pct data-unit="%" inputmode="numeric" aria-label="Light intensity"></span></div>
+      <div class="row"><label>Angle</label><input type="range" data-k="lightAngle" min="-180" max="180" aria-label="Light angle"><span class="field"><span class="dial" id="dial"></span><input data-k="lightAngle" data-unit="°" inputmode="numeric" aria-label="Light angle"></span></div>
       <div class="row"><label>Refraction</label><input type="range" data-k="refraction" data-pct min="0" max="100"><span class="field"><input data-k="refraction" data-pct inputmode="numeric"></span></div>
       <div class="row"><label>Depth</label><input type="range" data-k="depth" min="1" max="100"><span class="field"><input data-k="depth" inputmode="numeric"></span></div>
       <div class="row"><label>Dispersion</label><input type="range" data-k="dispersion" data-pct min="0" max="100"><span class="field"><input data-k="dispersion" data-pct inputmode="numeric"></span></div>
       <div class="row"><label>Frost</label><input type="range" data-k="frost" min="0" max="100"><span class="field"><input data-k="frost" inputmode="numeric"></span></div>
       <div class="row"><label>Splay</label><input type="range" data-k="splay" data-pct min="0" max="100"><span class="field"><input data-k="splay" data-pct inputmode="numeric"></span></div>
     </aside>
+    <aside class="panel">
+      <h2>Preview</h2>
+      <div class="row wide"><label>Render</label>
+        <span class="seg" id="render"><button data-mode="auto">Auto</button><button data-mode="mirror">Mirror</button><button data-mode="fallback">Fallback</button></span></div>
+      <div class="row"><label>Radius</label><input type="range" data-k="radius" min="0" max="60" aria-label="Corner radius"><span class="field"><input data-k="radius" inputmode="numeric" aria-label="Corner radius"></span></div>
+    </aside>
+    </div>
   </section>
 
   <h3>Use it</h3>
@@ -181,7 +184,6 @@
     fill: 'rgba(217,217,217,.2)',
     source: document.getElementById('card'),
     mode: new URLSearchParams(location.search).get('mode') || 'auto',
-    onRender: s => { document.getElementById('engine').textContent = s.mode; },
   });
 
   // Mirror clones the card's DOM under the glass, so it is opt-in.
@@ -198,21 +200,28 @@
 attach(document.getElementById('glass'), {
   lightAngle: ${r(o.lightAngle)}, lightIntensity: ${r(o.lightIntensity)},
   refraction: ${r(o.refraction)}, depth: ${r(o.depth)}, dispersion: ${r(o.dispersion)},
-  frost: ${r(o.frost)}, splay: ${r(o.splay)}, radius: 9999,${o.mode === 'auto' ? '' : `
+  frost: ${r(o.frost)}, splay: ${r(o.splay)}, radius: ${pill() ? 9999 : r(o.radius)},${o.mode === 'auto' ? '' : `
   mode: '${o.mode}',`}
 });`;
   }
 
   // Each property has a slider and a field, like Figma's panel; both write the same option.
   const controls = [...document.querySelectorAll('[data-k]')];
+  // Radius tops out at half the glass's height: a pill, kept as 9999 so it stays one when the glass resizes.
+  const maxRadius = () => Math.floor(glassEl.offsetHeight / 2);
+  const pill = () => glass.options.radius >= maxRadius();
   const shown = c => {
+    if (c.dataset.k === 'radius') return Math.min(glass.options.radius, maxRadius());
     const v = glass.options[c.dataset.k];
     return c.hasAttribute('data-pct') ? Math.round(v * 100) : Math.round(v);
   };
   function sync() {
     for (const c of controls) {
       const v = shown(c);
-      if (c.type === 'range') { c.value = v; c.style.setProperty('--p', (v - c.min) / (c.max - c.min) * 100 + '%'); }
+      if (c.type === 'range') {
+        if (c.dataset.k === 'radius') c.max = maxRadius();
+        c.value = v; c.style.setProperty('--p', (v - c.min) / (c.max - c.min) * 100 + '%');
+      }
       else if (document.activeElement !== c) c.value = v + (c.dataset.unit || '');
     }
     document.getElementById('dial').style.setProperty('--a', glass.options.lightAngle + 'deg');
@@ -223,6 +232,7 @@ attach(document.getElementById('glass'), {
     if (!isFinite(v)) return;
     if (c.dataset.k === 'lightAngle') v = ((v + 180) % 360 + 360) % 360 - 180;
     if (c.hasAttribute('data-pct')) v = Math.min(100, Math.max(0, v)) / 100;
+    if (c.dataset.k === 'radius') v = v >= maxRadius() ? 9999 : Math.max(0, v);
     glass.update({ [c.dataset.k]: v });
     sync();
   };
@@ -267,7 +277,7 @@ attach(document.getElementById('glass'), {
   const end = () => { drag = null; glassEl.classList.remove('dragging'); };
   glassEl.addEventListener('pointerup', end);
   glassEl.addEventListener('pointercancel', end);
-  addEventListener('resize', place);
+  addEventListener('resize', () => { place(); sync(); });
 </script>
 </body>
 </html>
