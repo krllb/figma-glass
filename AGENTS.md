@@ -35,5 +35,6 @@ before changing the math or an engine: it records what was measured and why the 
 ## Release
 
 Bump `version` in `packages/figma-glass/package.json`, add a `CHANGELOG.md` entry, push a
-`v<version>` tag. `.github/workflows/publish.yml` checks the package and publishes it with provenance
-through npm trusted publishing.
+`v<version>` tag. `.github/workflows/publish.yml` checks the package and stages it on npm with
+provenance through trusted publishing; the version goes live when the owner approves it on npmjs.com
+with a passkey.

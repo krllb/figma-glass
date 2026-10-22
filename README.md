@@ -13,14 +13,8 @@ people and coding agents alike: `AGENTS.md`.
 ## Release
 
 Bump `version` in `packages/figma-glass/package.json`, add a `CHANGELOG.md` entry, push a `v<version>`
-tag. The Publish workflow checks the package and publishes it with provenance.
-
-First release only, once:
-
-1. Create `github.com/krllb/figma-glass` and push `main`.
-2. Publish 0.1.0 by hand from `packages/figma-glass`: `npm login`, then `npm publish` (2FA).
-3. On npmjs.com, package settings → Trusted publishing: GitHub Actions, repository
-   `krllb/figma-glass`, workflow `publish.yml`. From then on tags publish on their own.
+tag. The Publish workflow checks the package and stages it on npm with provenance; approve it on
+npmjs.com with a passkey and it goes live.
 
 ## Site
 
