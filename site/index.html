@@ -83,6 +83,11 @@
   input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: #fff; }
 
   /* Usage. */
+  .tabs { display: inline-flex; gap: 2px; padding: 2px; margin-bottom: 8px; background: #e6e6e3; border-radius: 8px; }
+  .tabs button { border: 0; background: none; font: 13px/1 Inter, system-ui, sans-serif; color: var(--muted); padding: 6px 12px;
+    border-radius: 6px; cursor: pointer; }
+  .tabs button[aria-pressed=true] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .note { color: var(--muted); font-size: 14px; margin: 12px 0 0; }
   h3 { font-size: 20px; letter-spacing: -.01em; margin: 56px 0 12px; }
   pre { margin: 0; padding: 16px 20px; background: #fff; border-radius: 12px; box-shadow: 0 0 0 1px var(--line);
     overflow-x: auto; font: 13px/1.6 ui-monospace, Menlo, monospace; }
@@ -147,8 +152,14 @@
     </div>
   </section>
 
+  <h3>Install</h3>
+  <div class="tabs" id="pm"><button data-pm="npm">npm</button><button data-pm="pnpm">pnpm</button><button data-pm="yarn">yarn</button><button data-pm="bun">bun</button></div>
+  <pre id="install"></pre>
+
   <h3>Use it</h3>
+  <div class="tabs" id="flavour"><button data-flavour="js">JavaScript</button><button data-flavour="react">React</button></div>
   <pre id="code"></pre>
+  <p class="note">The values come straight from Figma’s Glass panel: percentages become 0..1, pixels stay pixels. In Safari, refraction needs <code>mode: { webkit: 'mirror' }</code> and a <code>source</code>: the block right under the glass.</p>
 
   <h3>Browsers</h3>
   <div class="support">
@@ -193,17 +204,43 @@
   showRender();
 
   const code = document.getElementById('code');
+  // Install and usage, each with tabs; the usage code follows the panel.
+  const COMMANDS = { npm: 'npm install figma-glass', pnpm: 'pnpm add figma-glass', yarn: 'yarn add figma-glass', bun: 'bun add figma-glass' };
+  let pm = 'npm', flavour = 'js';
+  const tabs = (id, key, pick) => {
+    const buttons = [...document.querySelectorAll(`#${id} button`)];
+    const show = v => buttons.forEach(b => b.setAttribute('aria-pressed', b.dataset[key] === v));
+    buttons.forEach(b => b.addEventListener('click', () => { pick(b.dataset[key]); show(b.dataset[key]); }));
+    return show;
+  };
+  const showPm = tabs('pm', 'pm', v => { pm = v; showInstall(); });
+  const showFlavour = tabs('flavour', 'flavour', v => { flavour = v; showCode(); });
+  function showInstall() { document.getElementById('install').textContent = COMMANDS[pm]; }
   function showCode() {
     const o = glass.options, r = v => Math.round(v * 100) / 100;
-    code.textContent = `import { attach } from 'figma-glass';
+    const values = (pad) => `${pad}lightAngle: ${r(o.lightAngle)}, lightIntensity: ${r(o.lightIntensity)},
+${pad}refraction: ${r(o.refraction)}, depth: ${r(o.depth)}, dispersion: ${r(o.dispersion)},
+${pad}frost: ${r(o.frost)}, splay: ${r(o.splay)}, radius: ${pill() ? 9999 : r(o.radius)},${o.mode === 'auto' ? '' : `
+${pad}mode: '${o.mode}',`}`;
+    code.textContent = flavour === 'js' ? `import { attach } from 'figma-glass';
 
 attach(document.getElementById('glass'), {
-  lightAngle: ${r(o.lightAngle)}, lightIntensity: ${r(o.lightIntensity)},
-  refraction: ${r(o.refraction)}, depth: ${r(o.depth)}, dispersion: ${r(o.dispersion)},
-  frost: ${r(o.frost)}, splay: ${r(o.splay)}, radius: ${pill() ? 9999 : r(o.radius)},${o.mode === 'auto' ? '' : `
-  mode: '${o.mode}',`}
-});`;
+${values('  ')}
+});` : `import { useEffect, useRef } from 'react';
+import { attach } from 'figma-glass';
+
+export function Glass({ children, ...props }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const glass = attach(ref.current, {
+${values('      ')}
+    });
+    return () => glass.destroy();
+  }, []);
+  return <div ref={ref} {...props}>{children}</div>;
+}`;
   }
+  showPm(pm); showFlavour(flavour); showInstall();
 
   // Each property has a slider and a field, like Figma's panel; both write the same option.
   const controls = [...document.querySelectorAll('[data-k]')];
