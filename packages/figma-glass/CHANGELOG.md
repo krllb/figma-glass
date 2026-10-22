@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- Docs: the examples set `source` and `mode: { webkit: 'mirror', gecko: 'mirror' }`, so they refract in
+  Safari and Firefox as copied.
+
 ## 0.2.0
 
 - `figma-glass/react`: `<Glass>`, the glass as a React component. Glass props update the glass only when
