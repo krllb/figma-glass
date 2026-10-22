@@ -26,3 +26,7 @@ jobs:
         run: test "v$(node -p "require('./packages/figma-glass/package.json').version")" = "$GITHUB_REF_NAME"
       - run: npm publish
         working-directory: packages/figma-glass
+        # The first release only: trusted publishing can be set up once the package exists. Remove with
+        # the NPM_TOKEN secret after that.
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
