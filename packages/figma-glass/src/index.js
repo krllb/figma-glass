@@ -680,7 +680,10 @@ function attach(node, options) {
     const w = node.offsetWidth, h = node.offsetHeight;
     if (!w || !h) return;
     size = [w, h];
-    node.style.borderRadius = o.radius + 'px';
+    // The radius the maps use; a large value (9999 for a pill) passed to CSS as is came out as a small
+    // radius in Chrome's GPU clip.
+    const radius = Math.max(0, Math.min(o.radius, w / 2, h / 2));
+    node.style.borderRadius = radius + 'px';
     fill.style.backgroundColor = o.fill || 'transparent';
     const mode = pickEngine(o, node);
     state.mode = mode;
@@ -715,7 +718,7 @@ function attach(node, options) {
       // The lens overhangs the glass by the frost reach and is clipped back to its shape.
       pad = Math.ceil(3 * o.frost * o.frostScale) + 2;
       Object.assign(layer.style, { display: '', inset: inset(pad), borderRadius: '0',
-        clipPath: `inset(${pad}px round ${o.radius}px)` });
+        clipPath: `inset(${pad}px round ${radius}px)` });
       const next = mode === 'backdrop' ? 'backdropFilter' : 'filter';
       // The previous glass stays until the new maps have loaded: a filter whose map is not loaded yet
       // paints black.
