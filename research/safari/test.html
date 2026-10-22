@@ -34,7 +34,7 @@ const frames = n => new Promise(r => { const f = () => --n ? requestAnimationFra
 const copyOf = (g, sel, pred) => [...document.querySelectorAll(`#${g} [data-glass-clone] ${sel}`)].find(pred || (() => true));
 const r2 = r => [r.left, r.top, r.width].map(v => Math.round(v * 10) / 10);
 const g1 = attach($('g1'), { source: src, mode: 'mirror', frost: 0 });
-const g2 = attach($('g2'), { source: src, mode: { chromium: 'mirror', webkit: 'mirror' }, frost: 0 });
+const g2 = attach($('g2'), { source: src, mode: { chromium: 'mirror', webkit: 'mirror', gecko: 'mirror' }, frost: 0 });
 await wait(800);
 const connects0 = connects;
 // scroll: fixed and sticky

@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf-8">
+<title>Element engine</title>
+<style>body{margin:0;background:#fff}.src{position:absolute;width:300px;height:220px;top:20px;background:repeating-conic-gradient(#222 0 25%,#ddd 0 50%) 0 0/20px 20px}
+.src::after{content:'';position:absolute;left:30%;top:0;bottom:0;width:6px;background:#e00}
+.g{position:absolute;top:70px;width:200px;height:120px}</style>
+<div id="cells"></div><pre id="result"></pre>
+<script type="importmap">{"imports":{"figma-glass":"../../packages/figma-glass/src/index.js"}}</script>
+<script type="module">
+// The glass is a sibling of its source, not inside it: auto picks element in Firefox, backdrop in Chromium.
+import { attach } from 'figma-glass';
+const q = new URLSearchParams(location.search), mode = q.get('mode') || 'auto';
+const cells = document.getElementById('cells'), gl = [];
+[4, 10, 20].forEach((frost, i) => {
+  const s = document.createElement('div'); s.className = 'src'; s.style.left = 20 + i * 320 + 'px';
+  const g = document.createElement('div'); g.className = 'g'; g.style.left = 70 + i * 320 + 'px';
+  cells.append(s, g);
+  gl.push(attach(g, { source: s, mode, frost, radius: 24, fill: 'rgba(255,255,255,.1)' }));
+});
+setTimeout(() => { document.getElementById('result').textContent = JSON.stringify(gl.map(g => g.state.mode)); }, 2500);
+</script>
