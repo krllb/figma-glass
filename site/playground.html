@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glass Playground</title>
+<style>
+  :root {
+    --panel: #2c2c2c; --panel-2: #383838; --line: #444; --text: #e6e6e6; --muted: #9a9a9a;
+    --accent: #0d99ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font: 13px/1.4 Inter, system-ui, -apple-system, sans-serif; background: #f4f1ea; color: #111; }
+
+  /* Scenes */
+  .scene { display: none; }
+  body[data-scene="page"] .scene-page,
+  body[data-scene="checker"] .scene-checker,
+  body[data-scene="uv"] .scene-uv,
+  body[data-scene="photo"] .scene-photo { display: block; }
+  .scene-page { padding: 48px 340px 200px 48px; }
+  .scene-page h1 { font-size: 112px; line-height: .95; letter-spacing: -.04em; margin: 0 0 32px; }
+  .scene-page p { font-size: 20px; max-width: 760px; }
+  .stripes { height: 180px; margin: 32px 0; background: repeating-linear-gradient(90deg, #111 0 8px, #fff 8px 16px); }
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 32px 0; max-width: 900px; }
+  .cards div { height: 140px; border-radius: 12px; display: grid; place-items: end start; padding: 12px; color: #fff; font-weight: 600; font-size: 18px; }
+  .marquee { overflow: hidden; white-space: nowrap; font-size: 64px; font-weight: 800; margin: 32px 0; }
+  .marquee span { display: inline-block; animation: run 12s linear infinite; }
+  @keyframes run { to { transform: translateX(-50%); } }
+  .scene-checker { min-height: 200vh; background: conic-gradient(#fff 25%, #111 0 50%, #fff 0 75%, #111 0) 0 0 / 32px 32px; }
+  .scene-photo { min-height: 200vh; background:
+      radial-gradient(40% 50% at 20% 30%, #ff5e3a, transparent),
+      radial-gradient(35% 45% at 70% 20%, #2b6bff, transparent),
+      radial-gradient(45% 40% at 60% 70%, #1fd17a, transparent),
+      radial-gradient(30% 30% at 25% 80%, #ffd60a, transparent), #1b1b2f; }
+  body[data-scene="gray"] .scene-gray { display: block; }
+  .scene-gray { width: 240px; height: 240px; background: #808080; }
+  .scene-uv { width: 240px; height: 240px; position: relative; background:
+      linear-gradient(90deg, #000, #f00), #000; }
+  .scene-uv::after { content: ''; position: absolute; inset: 0; mix-blend-mode: plus-lighter;
+      background: linear-gradient(180deg, #000, #0f0); }
+
+  /* Glass */
+  .glass { position: fixed; left: 120px; top: 160px; width: 320px; height: 200px; cursor: grab; touch-action: none; z-index: 10; }
+  .glass.dragging { cursor: grabbing; }
+
+  /* Panel */
+  .panel { position: fixed; top: 12px; right: 12px; width: 300px; max-height: calc(100vh - 24px); overflow: auto;
+    background: var(--panel); color: var(--text); border-radius: 13px; box-shadow: 0 8px 32px rgba(0,0,0,.35); z-index: 20; }
+  .sec { padding: 12px 16px; border-top: 1px solid var(--line); }
+  .sec:first-child { border-top: 0; }
+  .sec h2 { font-size: 13px; font-weight: 600; margin: 0 0 8px; }
+  .row { display: grid; grid-template-columns: 88px 1fr 56px; align-items: center; gap: 8px; height: 32px; }
+  .row label { color: #c8c8c8; }
+  .row input[type=range] { width: 100%; accent-color: var(--accent); }
+  .num, select, input[type=color] { width: 100%; height: 26px; background: var(--panel-2); color: var(--text); border: 0; border-radius: 5px; padding: 0 6px; font: inherit; }
+  input[type=color] { padding: 2px; }
+  .row.two { grid-template-columns: 88px 1fr 1fr; }
+  .status { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .btns { display: flex; gap: 8px; }
+  button { flex: 1; height: 28px; background: var(--panel-2); color: var(--text); border: 0; border-radius: 6px; font: inherit; cursor: pointer; }
+  button:hover { background: #444; }
+  details summary { cursor: pointer; color: var(--muted); }
+
+  body.calib { background: #1a1a1a; }
+  body.calib .panel { display: none; }
+  body.calib .glass { position: absolute; cursor: default; }
+</style>
+</head>
+<body data-scene="page">
+
+<main class="scene scene-page">
+  <h1>Liquid glass<br>by Figma’s math</h1>
+  <p>Drag the glass and scroll the page: underneath is live DOM, animation and text. Refraction, dispersion, light and frost follow the same math as Figma’s renderer.</p>
+  <div class="stripes"></div>
+  <div class="marquee"><span>Refraction Depth Dispersion Frost Splay — Refraction Depth Dispersion Frost Splay —&nbsp;</span></div>
+  <div class="cards">
+    <div style="background:#ff5e3a">Orange</div><div style="background:#2b6bff">Blue</div>
+    <div style="background:#1fd17a">Green</div><div style="background:#111">Black</div>
+    <div style="background:#ffd60a;color:#111">Yellow</div><div style="background:#b14bff">Purple</div>
+    <div style="background:#fff;color:#111;border:1px solid #ddd">White</div><div style="background:#ff2d78">Pink</div>
+  </div>
+  <p>Small text under the glass shows where the displacement field tears or quantizes. The thin stripes above show dispersion: at the edges they should spread into a spectrum, red outwards, blue inwards.</p>
+  <div class="stripes" style="background:repeating-linear-gradient(0deg,#111 0 2px,#fff 2px 12px)"></div>
+  <p style="font-size:14px;max-width:900px">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+  <div style="height:120vh"></div>
+</main>
+<div class="scene scene-checker"></div>
+<div class="scene scene-photo"></div>
+<div class="scene scene-uv"></div>
+<div class="scene scene-gray"></div>
+
+<div class="glass" id="glass"></div>
+
+<aside class="panel" id="panel" data-glass-ignore>
+  <div class="sec">
+    <h2>Glass</h2>
+    <div class="row two"><label>Light</label>
+      <input class="num" type="number" data-k="lightAngle" step="1" min="-180" max="180">
+      <input class="num" type="number" data-k="lightIntensity" data-pct step="1" min="0" max="100"></div>
+    <div class="row"><label>Angle</label><input type="range" data-k="lightAngle" min="-180" max="180" step="1"><span></span></div>
+  </div>
+  <div class="sec">
+    <div class="row"><label>Refraction</label><input type="range" data-k="refraction" data-pct min="0" max="100" step="1"><input class="num" type="number" data-k="refraction" data-pct min="0" max="100"></div>
+    <div class="row"><label>Depth</label><input type="range" data-k="depth" min="1" max="100" step="1"><input class="num" type="number" data-k="depth" min="1" max="100"></div>
+    <div class="row"><label>Dispersion</label><input type="range" data-k="dispersion" data-pct min="0" max="100" step="1"><input class="num" type="number" data-k="dispersion" data-pct min="0" max="100"></div>
+    <div class="row"><label>Frost</label><input type="range" data-k="frost" min="0" max="100" step="1"><input class="num" type="number" data-k="frost" min="0" max="100"></div>
+    <div class="row"><label>Splay</label><input type="range" data-k="splay" data-pct min="0" max="100" step="1"><input class="num" type="number" data-k="splay" data-pct min="0" max="100"></div>
+  </div>
+  <div class="sec">
+    <h2>Shape</h2>
+    <div class="row two"><label>W × H</label><input class="num" type="number" data-shape="w" min="20" max="1200"><input class="num" type="number" data-shape="h" min="20" max="1200"></div>
+    <div class="row"><label>Radius</label><input type="range" data-k="radius" min="0" max="300" step="1"><input class="num" type="number" data-k="radius" min="0" max="600"></div>
+    <div class="row two"><label>Fill</label><input type="color" id="fillColor" value="#d9d9d9"><input class="num" type="number" id="fillOpacity" min="0" max="100" value="20"></div>
+  </div>
+  <div class="sec">
+    <h2>Engine</h2>
+    <div class="row two"><label>Mode</label>
+      <select data-k="mode"><option value="auto">auto</option><option value="backdrop">backdrop</option><option value="element">element</option><option value="mirror">mirror</option><option value="fallback">fallback</option><option value="off">off</option></select>
+      <select data-k="taps" data-int><option value="0">auto taps</option><option value="8">8 taps</option><option value="3">3 taps</option><option value="1">1 tap</option></select></div>
+    <div class="row two"><label>Filter dpr</label>
+      <select data-k="filterDpr"><option value="0">auto</option><option value="1">1</option><option value="2">2</option></select><span></span></div>
+    <div class="row two"><label>Scene</label>
+      <select id="scene"><option value="page">page</option><option value="photo">photo</option><option value="checker">checker</option><option value="uv">uv</option></select><span></span></div>
+    <details>
+      <summary>Calibration</summary>
+      <div class="row"><label>Bevel</label><input type="range" data-k="bevel" min="0" max="8" step="0.1"><input class="num" type="number" data-k="bevel" step="0.1"></div>
+      <div class="row"><label>Frost k</label><input type="range" data-k="frostScale" min="0" max="2" step="0.01"><input class="num" type="number" data-k="frostScale" step="0.01"></div>
+      <div class="row"><label>Soften</label><input type="range" data-k="soften" min="0" max="0.33" step="0.01"><input class="num" type="number" data-k="soften" step="0.01"></div>
+      <div class="row"><label>Disp k</label><input type="range" data-k="dispersionScale" min="0" max="1" step="0.01"><input class="num" type="number" data-k="dispersionScale" step="0.01"></div>
+    </details>
+    <p class="status" id="status"></p>
+    <div class="btns"><button id="copy">Copy JSON</button><button id="reset">Reset</button></div>
+  </div>
+</aside>
+
+<script type="importmap">{ "imports": { "figma-glass": "../packages/figma-glass/src/index.js" } }</script>
+<script type="module">
+  import * as FigmaGlass from 'figma-glass';
+  const glassEl = document.getElementById('glass');
+  const status = document.getElementById('status');
+  const q = new URLSearchParams(location.search);
+  const num = k => q.has(k) ? Number(q.get(k)) : undefined;
+
+  // URL params override defaults; calib=1 renders a bare 240x240 UV cell for pixel comparison.
+  const init = {};
+  for (const k of Object.keys(FigmaGlass.DEFAULTS)) if (q.has(k) && k !== 'fill') init[k] = typeof FigmaGlass.DEFAULTS[k] === 'string' ? q.get(k) : num(k);
+  if (q.has('calib')) {
+    document.body.classList.add('calib');
+    document.body.dataset.scene = q.get('scene') || 'uv';
+    Object.assign(glassEl.style, { left: (num('x') ?? 40) + 'px', top: (num('y') ?? 60) + 'px' });
+  }
+  if (q.has('scene') && !q.has('calib')) document.body.dataset.scene = q.get('scene');
+  glassEl.style.width = (num('w') ?? 320) + 'px';
+  glassEl.style.height = (num('h') ?? 200) + 'px';
+
+  const fillColor = () => {
+    const c = document.getElementById('fillColor').value, a = document.getElementById('fillOpacity').value / 100;
+    const [r, g, b] = [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
+    return `rgba(${r},${g},${b},${a})`;
+  };
+  if (q.has('fill')) document.getElementById('fillOpacity').value = num('fill');
+  const sceneEl = () => document.querySelector('.scene-' + document.body.dataset.scene);
+
+  const glass = FigmaGlass.attach(glassEl, Object.assign({
+    radius: 32,
+    fill: fillColor(),
+    source: sceneEl(),
+    onRender: s => {
+      status.textContent = `${s.mode} · filter dpr ${s.filterDpr} · ${s.taps} taps · bake ${s.bakeMs.toFixed(1)} ms · ${s.primitives} filter primitives`;
+      document.documentElement.dataset.rendered = '1';
+    },
+  }, init));
+
+  // Two-way binding between controls and options.
+  const controls = document.querySelectorAll('[data-k]');
+  function syncControls() {
+    controls.forEach(c => {
+      const v = glass.options[c.dataset.k];
+      c.value = c.hasAttribute('data-pct') ? Math.round(v * 100) : v;
+    });
+    document.querySelector('[data-shape=w]').value = glassEl.offsetWidth;
+    document.querySelector('[data-shape=h]').value = glassEl.offsetHeight;
+  }
+  controls.forEach(c => c.addEventListener('input', () => {
+    let v = c.dataset.k === 'mode' ? c.value : Number(c.value);
+    if (c.hasAttribute('data-pct')) v /= 100;
+    glass.update({ [c.dataset.k]: v });
+    syncControls();
+  }));
+  document.querySelectorAll('[data-shape]').forEach(c => c.addEventListener('input', () => {
+    glassEl.style[c.dataset.shape === 'w' ? 'width' : 'height'] = c.value + 'px';
+  }));
+  const fill = () => glass.update({ fill: fillColor() });
+  document.getElementById('fillColor').addEventListener('input', fill);
+  document.getElementById('fillOpacity').addEventListener('input', fill);
+  document.getElementById('scene').addEventListener('input', e => {
+    document.body.dataset.scene = e.target.value;
+    glass.update({ source: sceneEl() });
+  });
+  document.getElementById('scene').value = document.body.dataset.scene;
+  document.getElementById('copy').addEventListener('click', () => {
+    const { onRender, source, ...o } = glass.options;
+    navigator.clipboard.writeText(JSON.stringify(Object.assign(o, { width: glassEl.offsetWidth, height: glassEl.offsetHeight }), null, 2));
+  });
+  document.getElementById('reset').addEventListener('click', () => {
+    const { mode, taps, fill, ...d } = FigmaGlass.DEFAULTS;
+    glass.update(Object.assign(d, { radius: 32 }));
+    syncControls();
+  });
+  syncControls();
+
+  // Drag.
+  let drag = null;
+  glassEl.addEventListener('pointerdown', e => {
+    if (document.body.classList.contains('calib')) return;
+    drag = { dx: e.clientX - glassEl.offsetLeft, dy: e.clientY - glassEl.offsetTop };
+    glassEl.setPointerCapture(e.pointerId);
+    glassEl.classList.add('dragging');
+  });
+  glassEl.addEventListener('pointermove', e => {
+    if (!drag) return;
+    glassEl.style.left = (e.clientX - drag.dx) + 'px';
+    glassEl.style.top = (e.clientY - drag.dy) + 'px';
+  });
+  glassEl.addEventListener('pointerup', () => { drag = null; glassEl.classList.remove('dragging'); });
+</script>
+</body>
+</html>

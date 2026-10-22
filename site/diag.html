@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glass diag</title>
+<style>
+  body { margin: 0; padding: 16px; font: 13px/1.4 system-ui, -apple-system, sans-serif; background: #f4f1ea; color: #111; }
+  #ua { color: #666; margin: 0 0 16px; white-space: pre-wrap; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .t { background: #fff; border-radius: 8px; padding: 10px; }
+  .t h3 { margin: 0 0 4px; font-size: 13px; }
+  .t p { margin: 0 0 8px; color: #666; font-size: 12px; }
+  .pair { display: flex; gap: 8px; }
+  .pair > div { width: 120px; }
+  .cap { font-size: 11px; color: #888; }
+  .box { width: 120px; height: 90px; position: relative; }
+  .checker { background: conic-gradient(#ffd60a 25%, #2b6bff 0 50%, #ffd60a 0 75%, #2b6bff 0) 0 0 / 30px 30px; }
+  iframe { width: 100%; height: 200px; border: 0; display: block; }
+</style>
+</head>
+<body>
+<p id="ua"></p>
+<svg width="0" height="0" style="position:absolute"><defs id="defs"></defs></svg>
+<div class="grid" id="grid"></div>
+<script>
+  const NS = 'http://www.w3.org/2000/svg', XL = 'http://www.w3.org/1999/xlink';
+  const defs = document.getElementById('defs'), grid = document.getElementById('grid');
+  document.getElementById('ua').textContent = [navigator.userAgent,
+    'devicePixelRatio ' + devicePixelRatio,
+    'backdrop-filter: url() ' + CSS.supports('backdrop-filter', 'url(#a)'),
+    '-webkit-backdrop-filter: url() ' + CSS.supports('-webkit-backdrop-filter', 'url(#a)')].join('\n');
+
+  function filter(id, prims, attrs) {
+    const f = document.createElementNS(NS, 'filter');
+    f.id = id;
+    Object.entries(Object.assign({ x: 0, y: 0, width: 1, height: 1, filterUnits: 'objectBoundingBox',
+      'color-interpolation-filters': 'sRGB' }, attrs)).forEach(([k, v]) => f.setAttribute(k, v));
+    for (const [tag, a] of prims) {
+      const e = document.createElementNS(NS, tag);
+      for (const k in a) e.setAttribute(k, a[k]);
+      if (a.href) e.setAttributeNS(XL, 'xlink:href', a.href);
+      f.appendChild(e);
+    }
+    defs.appendChild(f);
+  }
+  function map(fn) {
+    const c = document.createElement('canvas'); c.width = 120; c.height = 90;
+    const x = c.getContext('2d'); fn(x); return c.toDataURL();
+  }
+  // A test: our element with the filter, next to what it should look like.
+  function tile(title, note, test, expect) {
+    const t = document.createElement('div'); t.className = 't';
+    t.innerHTML = `<h3>${title}</h3><p>${note}</p><div class="pair"><div><div class="box got"></div><div class="cap">this browser</div></div><div><div class="box want"></div><div class="cap">expected</div></div></div>`;
+    test(t.querySelector('.got')); expect(t.querySelector('.want'));
+    grid.appendChild(t);
+  }
+  const checker = el => el.classList.add('checker');
+  const css = s => el => { checker(el); el.style.cssText += s; };
+
+  // 1. The basics: an SVG filter on an HTML element.
+  filter('f-invert', [['feColorMatrix', { type: 'matrix', values: '-1 0 0 0 1 0 -1 0 0 1 0 0 -1 0 1 0 0 0 1 0' }]]);
+  tile('1. filter: url() on a div', 'Colour inversion via feColorMatrix.', css('filter:url(#f-invert)'), css('filter:invert(1)'));
+
+  // 1b. Which colour space the filter runs in: white times 0.5 is #808080 in sRGB, #bcbcbc in linearRGB.
+  filter('f-half', [['feColorMatrix', { type: 'matrix', values: '0.5 0 0 0 0 0 0.5 0 0 0 0 0 0.5 0 0 0 0 0 1 0' }]]);
+  tile('1b. Filter colour space', 'White × 0.5. Should be #808080 (sRGB). Lighter, #bcbcbc, means color-interpolation-filters is ignored.',
+    el => { el.style.cssText += 'background:#fff;filter:url(#f-half)'; },
+    el => { el.style.background = '#808080'; });
+
+  // 2. feImage from a data URL fills the region.
+  const halves = map(x => { x.fillStyle = '#f00'; x.fillRect(0, 0, 60, 90); x.fillStyle = '#00f'; x.fillRect(60, 0, 60, 90); });
+  filter('f-image', [['feImage', { href: halves, preserveAspectRatio: 'none' }]]);
+  tile('2. feImage from a data URL', 'Map over the whole filter region: red and blue halves.', css('filter:url(#f-image)'),
+    el => { el.style.background = 'linear-gradient(90deg,#f00 50%,#00f 50%)'; });
+
+  // 3. Displacement by a uniform map, shifting by exactly one 15px cell: yellow and blue swap places.
+  // 3a reads the shift from a coloured map, 3b from grey maps (what glass.js does now).
+  const shift = map(x => { x.fillStyle = 'rgb(255,128,128)'; x.fillRect(0, 0, 120, 90); });
+  filter('f-disp', [['feImage', { href: shift, preserveAspectRatio: 'none', result: 'm' }],
+    ['feDisplacementMap', { in: 'SourceGraphic', in2: 'm', scale: 30, xChannelSelector: 'R', yChannelSelector: 'G' }]]);
+  tile('3a. feDisplacementMap, colour map', 'Cells shifted by exactly one: yellow and blue swap places.', css('filter:url(#f-disp)'),
+    css('background-position:-15px 0'));
+  const gx = map(x => { x.fillStyle = '#fff'; x.fillRect(0, 0, 120, 90); });
+  const gy = map(x => { x.fillStyle = 'rgb(128,128,128)'; x.fillRect(0, 0, 120, 90); });
+  filter('f-disp-grey', [['feImage', { href: gx, preserveAspectRatio: 'none', result: 'mx' }],
+    ['feImage', { href: gy, preserveAspectRatio: 'none', result: 'my' }],
+    ['feColorMatrix', { in: 'mx', type: 'matrix', values: '1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0', result: 'mxr' }],
+    ['feColorMatrix', { in: 'my', type: 'matrix', values: '0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0', result: 'myg' }],
+    ['feComposite', { in: 'mxr', in2: 'myg', operator: 'arithmetic', k2: 1, k3: 1, result: 'm' }],
+    ['feDisplacementMap', { in: 'SourceGraphic', in2: 'm', scale: 30, xChannelSelector: 'R', yChannelSelector: 'G' }]]);
+  tile('3b. feDisplacementMap, grey maps', 'Same, map assembled from two grey ones.', css('filter:url(#f-disp-grey)'),
+    css('background-position:-15px 0'));
+
+  // 4. Long separable convolution, like frost.
+  const k = []; for (let i = -11; i <= 11; i++) k.push(Math.exp(-i * i / 24)); const s = k.reduce((a, b) => a + b);
+  filter('f-conv', [['feConvolveMatrix', { order: '23 1', kernelMatrix: k.map(v => v / s).join(' '), edgeMode: 'duplicate', preserveAlpha: 'true' }]]);
+  tile('4. feConvolveMatrix 23×1', 'Source on the right. On the left vertical cell edges are blurred, horizontal ones sharp.', css('filter:url(#f-conv)'), checker);
+
+  // 4b. Resolution: a do-nothing filter on text. Blurry text means the filter runs below screen density.
+  filter('f-id', [['feColorMatrix', { type: 'matrix', values: '1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0' }]]);
+  const txt = f => el => { el.style.cssText += `background:#fff;font:11px/1.2 system-ui;padding:4px;overflow:hidden;${f}`;
+    el.textContent = 'Small text to check filter resolution. The quick brown fox jumps over the lazy dog.'; };
+  tile('4b. Filter resolution', 'A filter that changes nothing. Blurry text on the left means the filter runs below screen density.',
+    txt('filter:url(#f-id)'), txt(''));
+
+  // 5. Arithmetic composite with k4 = -1, the light step.
+  const white = map(x => { x.fillStyle = '#fff'; x.fillRect(0, 0, 120, 90); });
+  filter('f-arith', [['feImage', { href: white, preserveAspectRatio: 'none', result: 'w' }],
+    ['feComposite', { in: 'SourceGraphic', in2: 'w', operator: 'arithmetic', k2: 1, k3: 1, k4: -1 }]]);
+  tile('5. feComposite arithmetic, k4 −1', 'The picture stays the same.', css('filter:url(#f-arith)'), checker);
+
+  // 6. Filter on a lens that overhangs its parent and is clipped back.
+  tile('6. Lens: inset −pad, clip-path, isolation', 'Inversion inside a rounded rectangle inset by 10px.',
+    el => { checker(el); el.style.isolation = 'isolate';
+      const l = document.createElement('div');
+      l.style.cssText = 'position:absolute;inset:-10px;z-index:-1;clip-path:inset(20px round 12px);filter:url(#f-invert);background:#08f';
+      el.appendChild(l); },
+    el => { checker(el);
+      const l = document.createElement('div');
+      l.style.cssText = 'position:absolute;inset:10px;border-radius:12px;background:#f70';
+      el.appendChild(l); });
+
+  // 7. backdrop-filter: url(), for the record.
+  tile('7. backdrop-filter: url()', 'Unsupported in Safari before 26. If supported, the frame is inverted inside.',
+    el => { checker(el);
+      const l = document.createElement('div');
+      l.style.cssText = 'position:absolute;inset:15px;border:1px solid #f0f;-webkit-backdrop-filter:url(#f-invert);backdrop-filter:url(#f-invert)';
+      el.appendChild(l); },
+    el => { checker(el);
+      const l = document.createElement('div');
+      l.style.cssText = 'position:absolute;inset:15px;border:1px solid #f0f;-webkit-backdrop-filter:invert(1);backdrop-filter:invert(1)';
+      el.appendChild(l); });
+
+  // 8-12. The real thing, in the engines Safari can use. The light rim should hug the glass edge.
+  [['mirror, frost 4', 'mode=mirror&frost=4'], ['mirror, frost 20', 'mode=mirror&frost=20'],
+   ['mirror, frost 40', 'mode=mirror&frost=40'], ['mirror, frost 20, SVG convolution (old)', 'mode=mirror&frost=20&blur=convolve'],
+   ['mirror, frost 0', 'mode=mirror&frost=0'], ['fallback, frost 20', 'mode=fallback&frost=20']].forEach(([name, params], i) => {
+    const t = document.createElement('div'); t.className = 't';
+    t.innerHTML = `<h3>${8 + i}. glass.js, ${name}</h3><p>Glass 160×120 on a checkerboard. The thin light rim should run along the glass edge.</p><iframe src="playground.html?calib=1&scene=checker&w=160&h=120&fill=20&${params}"></iframe>`;
+    grid.appendChild(t);
+  });
+</script>
+</body>
+</html>

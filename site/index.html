@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Figma’s Glass effect</title>
+<meta name="description" content="A close web implementation of Figma’s Glass effect over live DOM.">
+<style>
+  :root { --bg: #f4f4f2; --ink: #111; --muted: #6b6b6b; --line: #e2e2df;
+    --panel: #2c2c2c; --field: #383838; --text: #e6e6e6; --accent: #0d99ff; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font: 15px/1.5 Inter, system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--ink); }
+  .page { max-width: 1040px; margin: 0 auto; padding: 56px 16px 80px; }
+  h1 { font-size: clamp(56px, 12vw, 152px); line-height: .9; letter-spacing: -.05em; font-weight: 800; margin: 0; text-align: center; }
+  .lead { font-size: clamp(15px, 2vw, 20px); color: var(--muted); margin: 24px auto 48px; max-width: 34em; text-align: center; }
+
+  /* Preview: the test card with the glass on it, and Figma's panel. */
+  .preview { display: grid; grid-template-columns: 1fr 240px; gap: 16px; align-items: start; }
+  .screen { position: relative; aspect-ratio: 4 / 3; border-radius: 16px; overflow: hidden; container-type: size;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+
+  /* The test card: everything the glass sees. */
+  .card { position: absolute; inset: 0; background: #7f7f7f; --cell: 8cqmin;
+    background-image: linear-gradient(#fff 0 2px, transparent 2px), linear-gradient(90deg, #fff 0 2px, transparent 2px);
+    background-size: var(--cell) var(--cell); background-position: calc(50% - 1px) calc(50% - 1px); }
+  .castle { position: absolute; top: 0; bottom: 0; width: calc(var(--cell) / 2);
+    background: repeating-linear-gradient(#000 0 var(--cell), #fff 0 calc(var(--cell) * 2)); }
+  .castle.l { left: 0; } .castle.r { right: 0; background-position: 0 var(--cell); }
+  .disc { position: absolute; left: 50%; top: 50%; width: 84cqmin; aspect-ratio: 1; transform: translate(-50%, -50%);
+    border-radius: 50%; overflow: hidden; border: 2px solid #fff; display: flex; flex-direction: column; background: #7f7f7f; }
+  .disc > div { display: flex; }
+  .disc > div > i { flex: 1; }
+  .id { flex: 0 0 15%; background: #000; color: #fff; align-items: flex-end; justify-content: center; padding-bottom: 2%;
+    font: 800 5cqmin/1 Inter, system-ui, sans-serif; letter-spacing: .04em; }
+  .bars { flex: 0 0 27%; }
+  .ramp { flex: 0 0 9%; }
+  .burst { flex: 0 0 15%; background: #000; }
+  .burst > i:nth-child(1) { background: repeating-linear-gradient(90deg, #fff 0 8px, #000 0 16px); }
+  .burst > i:nth-child(2) { background: repeating-linear-gradient(90deg, #fff 0 5px, #000 0 10px); }
+  .burst > i:nth-child(3) { background: repeating-linear-gradient(90deg, #fff 0 3px, #000 0 6px); }
+  .burst > i:nth-child(4) { background: repeating-linear-gradient(90deg, #fff 0 2px, #000 0 4px); }
+  .burst > i:nth-child(5) { background: repeating-linear-gradient(90deg, #fff 0 1px, #000 0 2px); }
+  .clock { flex: 0 0 10%; background: #000; justify-content: center; align-items: center; }
+  .clock span { background: #fff; color: #000; padding: 0 4%; height: 70%; display: grid; place-items: center;
+    font: 700 4cqmin/1 ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+  .hue { flex: 0 0 12%; background: linear-gradient(90deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); }
+  .tail { flex: 1; }
+  .cross { position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(#fff, #fff) center / 2px 100% no-repeat, linear-gradient(#fff, #fff) center / 100% 2px no-repeat; }
+  .marquee { position: absolute; left: 0; right: 0; bottom: 0; height: 9cqmin; background: #000; color: #fff; overflow: hidden;
+    white-space: nowrap; font: 700 4.5cqmin/9cqmin Inter, system-ui, sans-serif; letter-spacing: .08em; }
+  .marquee span { display: inline-block; animation: run 18s linear infinite; }
+  @keyframes run { to { transform: translateX(-50%); } }
+  @media (prefers-reduced-motion: reduce) { .marquee span { animation: none; } }
+
+  .render { display: flex; align-items: center; gap: 12px; margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .seg { display: inline-flex; background: #e6e6e3; border-radius: 8px; padding: 2px; }
+  .seg button { border: 0; background: none; font: inherit; color: var(--ink); padding: 4px 12px; border-radius: 6px; cursor: pointer; }
+  .seg button[aria-pressed=true] { background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .glass { position: absolute; width: 44%; height: 18%; cursor: grab; touch-action: none; z-index: 10; }
+  .glass.dragging { cursor: grabbing; }
+
+  /* Figma's Glass properties, nothing else. */
+  .panel { background: var(--panel); color: var(--text); border-radius: 13px; padding: 4px 0 8px;
+    font: 11px/16px Inter, system-ui, -apple-system, sans-serif; box-shadow: 0 2px 14px rgba(0,0,0,.15); }
+  .panel h2 { font-size: 11px; font-weight: 600; margin: 0; padding: 8px 16px; }
+  .row { display: grid; grid-template-columns: 72px 1fr 44px; align-items: center; gap: 8px; height: 32px; padding: 0 16px; }
+  .row.light { grid-template-columns: 72px 1fr 1fr; }
+  .field { height: 24px; background: var(--field); border-radius: 5px; display: flex; align-items: center; gap: 4px; padding: 0 6px; }
+  .field input { width: 100%; min-width: 0; background: none; border: 0; color: var(--text); font: inherit; padding: 0; outline: none; }
+  .field:focus-within { box-shadow: inset 0 0 0 1px var(--accent); }
+  .dial { flex: 0 0 14px; height: 14px; border-radius: 50%; border: 1px solid #b0b0b0; position: relative; cursor: grab; touch-action: none; }
+  .dial::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 1px; background: #e6e6e6;
+    transform-origin: 0 50%; transform: rotate(var(--a, 0deg)); }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 16px; background: none; margin: 0; }
+  input[type=range]::-webkit-slider-runnable-track { height: 2px; border-radius: 1px;
+    background: linear-gradient(90deg, var(--text) var(--p, 0%), #5a5a5a 0); }
+  input[type=range]::-moz-range-track { height: 2px; background: #5a5a5a; }
+  input[type=range]::-moz-range-progress { height: 2px; background: var(--text); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; margin-top: -5px; border-radius: 50%;
+    background: #fff; box-shadow: 0 0 0 .5px rgba(0,0,0,.3), 0 1px 3px rgba(0,0,0,.3); }
+  input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: #fff; }
+
+  /* Usage. */
+  h3 { font-size: 20px; letter-spacing: -.01em; margin: 56px 0 12px; }
+  pre { margin: 0; padding: 16px 20px; background: #fff; border-radius: 12px; box-shadow: 0 0 0 1px var(--line);
+    overflow-x: auto; font: 13px/1.6 ui-monospace, Menlo, monospace; }
+  .support { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border-radius: 12px;
+    overflow: hidden; box-shadow: 0 0 0 1px var(--line); }
+  .support div { background: #fff; padding: 14px 16px; }
+  .support b { display: block; }
+  .support span { color: var(--muted); font-size: 14px; }
+  .links { margin-top: 24px; color: var(--muted); font-size: 14px; }
+  .links a { color: var(--ink); margin-right: 16px; }
+
+  @media (max-width: 760px) {
+    .page { padding-top: 32px; }
+    .preview { grid-template-columns: 1fr; }
+    .support { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Figma’s<br>Glass effect</h1>
+  <p class="lead">A close web implementation of Figma’s Glass, built from Figma’s own math. Brilliant in Chrome, decent in Safari, very sad in Firefox.</p>
+
+  <section class="preview">
+    <div>
+    <div class="screen" id="screen">
+      <div class="card" id="card">
+        <div class="castle l"></div><div class="castle r"></div>
+        <div class="disc">
+          <div class="id">GLASS</div>
+          <div class="bars"><i style="background:#c0c0c0"></i><i style="background:#c0c000"></i><i style="background:#00c0c0"></i><i style="background:#00c000"></i><i style="background:#c000c0"></i><i style="background:#c00000"></i><i style="background:#0000c0"></i></div>
+          <div class="ramp"><i style="background:#000"></i><i style="background:#333"></i><i style="background:#666"></i><i style="background:#999"></i><i style="background:#ccc"></i><i style="background:#fff"></i></div>
+          <div class="burst"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="clock"><span id="clock">00:00:00</span></div>
+          <div class="hue"></div>
+          <div class="tail"><i style="background:#fff"></i><i style="background:#000"></i><i style="background:#fff"></i><i style="background:#000"></i></div>
+          <div class="cross"></div>
+        </div>
+        <div class="marquee"><span>REFRACTION · DEPTH · DISPERSION · FROST · SPLAY · LIGHT · REFRACTION · DEPTH · DISPERSION · FROST · SPLAY · LIGHT ·&nbsp;</span></div>
+      </div>
+      <div class="glass" id="glass" aria-label="Draggable glass"></div>
+    </div>
+    <div class="render">Render
+      <span class="seg" id="render"><button data-mode="auto">Auto</button><button data-mode="mirror">Mirror</button><button data-mode="fallback">Fallback</button></span>
+      <span id="engine"></span>
+    </div>
+    </div>
+
+    <aside class="panel" data-glass-ignore>
+      <h2>Glass</h2>
+      <div class="row light"><label>Light</label>
+        <span class="field"><span class="dial" id="dial"></span><input data-k="lightAngle" data-unit="°" inputmode="numeric" aria-label="Light angle"></span>
+        <span class="field"><input data-k="lightIntensity" data-pct data-unit="%" inputmode="numeric" aria-label="Light intensity"></span></div>
+      <div class="row"><label>Refraction</label><input type="range" data-k="refraction" data-pct min="0" max="100"><span class="field"><input data-k="refraction" data-pct inputmode="numeric"></span></div>
+      <div class="row"><label>Depth</label><input type="range" data-k="depth" min="1" max="100"><span class="field"><input data-k="depth" inputmode="numeric"></span></div>
+      <div class="row"><label>Dispersion</label><input type="range" data-k="dispersion" data-pct min="0" max="100"><span class="field"><input data-k="dispersion" data-pct inputmode="numeric"></span></div>
+      <div class="row"><label>Frost</label><input type="range" data-k="frost" min="0" max="100"><span class="field"><input data-k="frost" inputmode="numeric"></span></div>
+      <div class="row"><label>Splay</label><input type="range" data-k="splay" data-pct min="0" max="100"><span class="field"><input data-k="splay" data-pct inputmode="numeric"></span></div>
+    </aside>
+  </section>
+
+  <h3>Use it</h3>
+  <pre id="code"></pre>
+
+  <h3>Browsers</h3>
+  <div class="support">
+    <div><b>Chrome, Edge</b><span>Through <code>backdrop-filter</code>. Within a level or two of Figma’s pixels.</span></div>
+    <div><b>Safari</b><span>Frost and light by default. Refraction with <code>mode: 'mirror'</code>, which renders a live copy of the source under the glass.</span></div>
+    <div><b>Firefox</b><span>Through <code>-moz-element()</code>. The least faithful of the three.</span></div>
+  </div>
+  <p class="links"><a href="https://www.npmjs.com/package/figma-glass">npm</a><a href="playground.html">Playground</a><a href="diag.html">Diagnostics</a></p>
+</div>
+
+<script type="importmap">{ "imports": { "figma-glass": "../packages/figma-glass/src/index.js" } }</script>
+<script type="module">
+  import * as FigmaGlass from 'figma-glass';
+  const screenEl = document.getElementById('screen'), glassEl = document.getElementById('glass');
+
+  const clock = document.getElementById('clock');
+  const tickClock = () => { clock.textContent = new Date().toTimeString().slice(0, 8); };
+  tickClock(); setInterval(tickClock, 1000);
+
+  // Position as a share of the screen, so the glass stays put when the preview resizes.
+  let pos = [0.28, 0.25];
+  const place = () => {
+    const W = screenEl.clientWidth, H = screenEl.clientHeight, w = glassEl.offsetWidth, h = glassEl.offsetHeight;
+    pos = pos.map((p, i) => Math.max(0, Math.min(1 - (i ? h / H : w / W), p)));
+    glassEl.style.left = pos[0] * 100 + '%';
+    glassEl.style.top = pos[1] * 100 + '%';
+  };
+  place();
+
+  // Corner radius at its maximum: a pill.
+  const glass = FigmaGlass.attach(glassEl, {
+    radius: 9999,
+    fill: 'rgba(217,217,217,.2)',
+    source: document.getElementById('card'),
+    mode: new URLSearchParams(location.search).get('mode') || 'auto',
+    onRender: s => { document.getElementById('engine').textContent = s.mode; },
+  });
+
+  // Mirror clones the card's DOM under the glass, so it is opt-in.
+  const renderButtons = [...document.querySelectorAll('#render button')];
+  const showRender = () => renderButtons.forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === glass.options.mode));
+  renderButtons.forEach(b => b.addEventListener('click', () => { glass.update({ mode: b.dataset.mode }); showRender(); showCode(); }));
+  showRender();
+
+  const code = document.getElementById('code');
+  function showCode() {
+    const o = glass.options, r = v => Math.round(v * 100) / 100;
+    code.textContent = `import { attach } from 'figma-glass';
+
+attach(document.getElementById('glass'), {
+  lightAngle: ${r(o.lightAngle)}, lightIntensity: ${r(o.lightIntensity)},
+  refraction: ${r(o.refraction)}, depth: ${r(o.depth)}, dispersion: ${r(o.dispersion)},
+  frost: ${r(o.frost)}, splay: ${r(o.splay)}, radius: 9999,${o.mode === 'auto' ? '' : `
+  mode: '${o.mode}',`}
+});`;
+  }
+
+  // Each property has a slider and a field, like Figma's panel; both write the same option.
+  const controls = [...document.querySelectorAll('[data-k]')];
+  const shown = c => {
+    const v = glass.options[c.dataset.k];
+    return c.hasAttribute('data-pct') ? Math.round(v * 100) : Math.round(v);
+  };
+  function sync() {
+    for (const c of controls) {
+      const v = shown(c);
+      if (c.type === 'range') { c.value = v; c.style.setProperty('--p', (v - c.min) / (c.max - c.min) * 100 + '%'); }
+      else if (document.activeElement !== c) c.value = v + (c.dataset.unit || '');
+    }
+    document.getElementById('dial').style.setProperty('--a', glass.options.lightAngle + 'deg');
+    showCode();
+  }
+  const set = (c, raw) => {
+    let v = parseFloat(String(raw).replace(',', '.'));
+    if (!isFinite(v)) return;
+    if (c.dataset.k === 'lightAngle') v = ((v + 180) % 360 + 360) % 360 - 180;
+    if (c.hasAttribute('data-pct')) v = Math.min(100, Math.max(0, v)) / 100;
+    glass.update({ [c.dataset.k]: v });
+    sync();
+  };
+  for (const c of controls) {
+    if (c.type === 'range') c.addEventListener('input', () => set(c, c.value));
+    else {
+      c.addEventListener('change', () => set(c, c.value));
+      c.addEventListener('keydown', e => {
+        if (e.key === 'Enter') c.blur();
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          set(c, shown(c) + (e.key === 'ArrowUp' ? 1 : -1) * (e.shiftKey ? 10 : 1));
+        }
+      });
+      c.addEventListener('blur', sync);
+    }
+  }
+  sync();
+
+  // The dial turns the light: drag around its centre.
+  const dial = document.getElementById('dial'), angleField = document.querySelector('[data-k=lightAngle]');
+  let turning = false;
+  const turn = e => {
+    const r = dial.getBoundingClientRect();
+    set(angleField, Math.round(Math.atan2(e.clientY - r.top - r.height / 2, e.clientX - r.left - r.width / 2) * 180 / Math.PI));
+  };
+  dial.addEventListener('pointerdown', e => { turning = true; dial.setPointerCapture(e.pointerId); turn(e); });
+  dial.addEventListener('pointermove', e => { if (turning) turn(e); });
+  dial.addEventListener('pointerup', () => { turning = false; });
+
+  let drag = null;
+  glassEl.addEventListener('pointerdown', e => {
+    drag = { x: e.clientX, y: e.clientY, p: pos.slice() };
+    glassEl.setPointerCapture(e.pointerId);
+    glassEl.classList.add('dragging');
+  });
+  glassEl.addEventListener('pointermove', e => {
+    if (!drag) return;
+    pos = [drag.p[0] + (e.clientX - drag.x) / screenEl.clientWidth, drag.p[1] + (e.clientY - drag.y) / screenEl.clientHeight];
+    place();
+  });
+  const end = () => { drag = null; glassEl.classList.remove('dragging'); };
+  glassEl.addEventListener('pointerup', end);
+  glassEl.addEventListener('pointercancel', end);
+  addEventListener('resize', place);
+</script>
+</body>
+</html>

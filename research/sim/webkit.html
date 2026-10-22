@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WebKit sim</title>
+<script>
+  // Pretend to be Safari: the library takes its WebKit path (one dispersion sample, compositing lens, twin filter flip).
+  if (!location.search.includes('real')) {
+  Object.defineProperty(navigator, 'userAgentData', { get: () => undefined });
+  Object.defineProperty(navigator, 'userAgent', { get: () => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.2 Safari/605.1.15' });
+  }
+  window.onerror = (m, f, l) => { document.addEventListener('DOMContentLoaded', () => {}); (window.errs = window.errs || []).push(m + ' @' + l); };
+</script>
+<style>body{margin:0;font:40px/1.1 system-ui;background:#f4f1ea} #src{padding:40px} .g{position:fixed;left:60px;top:50px;width:320px;height:200px}</style>
+<div id="src">Liquid glass by Figma’s math, the text under the glass moves.</div>
+<div class="g" id="g"></div>
+<p id="out" style="position:fixed;left:20px;top:600px;font-size:16px">pending</p>
+<script type="importmap">{ "imports": { "figma-glass": "../../packages/figma-glass/src/index.js" } }</script>
+<script type="module">
+  import * as FigmaGlass from 'figma-glass';
+  const g = FigmaGlass.attach(document.getElementById('g'), { radius: 32, source: document.getElementById('src'), mode: new URLSearchParams(location.search).get('mode') || 'auto' });
+  let n = 0, flips = new Set();
+  setInterval(() => { if (window.errs) document.getElementById('out').textContent = window.errs.join(' ; '); }, 200);
+  (function move() {
+    g && (document.getElementById('g').style.left = (60 + (n % 40)) + 'px');
+    const l = document.querySelector('[data-figma-glass] > div');
+    flips.add(l.style.filter);
+    if (++n < 60) requestAnimationFrame(move);
+    else { document.getElementById('out').textContent = (window.errs||[]).join(' ; ') + ' || ' + g.state.mode + ' dpr ' + g.state.filterDpr + ' filters: ' + [...flips].join(' | '); document.documentElement.dataset.done = 1; }
+  })();
+</script>

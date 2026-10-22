@@ -1,0 +1,24 @@
+<!doctype html><meta charset="utf-8">
+<style>body{margin:0;font:14px sans-serif}#page{width:1200px}#hero{position:relative;height:300px;background:linear-gradient(90deg,#f80,#08f);overflow:hidden}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(600px)}}#ball{width:80px;height:80px;border-radius:40px;background:#000;position:absolute;top:110px;left:100px;animation:slide 1s linear infinite alternate}
+.g{position:absolute;left:300px;top:90px;width:320px;height:120px}.row{padding:4px;border-bottom:1px solid #ddd}</style>
+<div id="page"><div id="hero"><div id="ball"></div><div class="g" id="g"></div><p style="position:absolute;top:120px;left:330px">Glass over moving content</p></div><div id="rows"></div></div>
+<pre id="result"></pre>
+<script type="importmap">{"imports":{"figma-glass":"../../packages/figma-glass/src/index.js"}}</script>
+<script type="module">
+import { attach } from 'figma-glass';
+const q = new URLSearchParams(location.search);
+const rows = document.getElementById('rows');
+for (let i = 0; i < Number(q.get('rows') || 0); i++) { const d = document.createElement('div'); d.className = 'row'; d.innerHTML = `<b>Row ${i}</b> lorem <i>ipsum</i> dolor <span>sit amet</span>`; rows.append(d); }
+const source = q.get('source') === 'page' ? document.getElementById('page') : document.getElementById('hero');
+const opts = { source, mode: q.get('mode') || 'mirror', frost: Number(q.get('frost') || 4), radius: 40, blur: q.get('blur') || 'auto' };
+if (q.get('taps')) opts.taps = Number(q.get('taps'));
+const glass = q.get('mode') === 'none' ? null : attach(document.getElementById('g'), opts);
+await new Promise(r => setTimeout(r, 1500));
+if (q.get('churn')) { const hero = document.getElementById('hero'); let on = true; const f = () => { if (!on) return; const b = document.createElement('i'); hero.append(b); b.remove(); requestAnimationFrame(f); }; requestAnimationFrame(f); setTimeout(() => on = false, 6000); }
+const times = []; let last = performance.now();
+await new Promise(res => { const f = t => { times.push(t - last); last = t; times.length < 180 ? requestAnimationFrame(f) : res(); }; requestAnimationFrame(f); });
+times.sort((a, b) => a - b);
+const avg = times.reduce((a, b) => a + b, 0) / times.length;
+document.getElementById('result').textContent = JSON.stringify({ mode: glass ? glass.state.mode : 'none', fps: Math.round(1000 / avg), p95ms: Math.round(times[Math.floor(times.length * .95)]), taps: glass && glass.state.taps });
+</script>

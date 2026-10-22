@@ -1,0 +1,18 @@
+<!doctype html><meta charset="utf-8">
+<style>body{margin:0;background:#fff}.src{position:absolute;width:300px;height:220px;top:20px;background:repeating-conic-gradient(#222 0 25%,#ddd 0 50%) 0 0/20px 20px}.g{position:absolute;left:50px;top:50px;width:200px;height:120px}</style>
+<div id="cells"></div><pre id="result"></pre>
+<script type="importmap">{"imports":{"figma-glass":"../../packages/figma-glass/src/index.js"}}</script>
+<script type="module">
+import { attach } from 'figma-glass';
+const q = new URLSearchParams(location.search), mode = q.get('mode') || 'mirror', blur = q.get('blur') || 'auto';
+const cells = document.getElementById('cells'), gl = [];
+const lefts = (q.get('lefts') || '20,340,660').split(',').map(Number), tops = (q.get('tops') || '20,20,20').split(',').map(Number);
+[4, 10, 20].forEach((frost, i) => {
+  const s = document.createElement('div'); s.className = 'src'; s.style.left = lefts[i] + 'px'; s.style.top = tops[i] + 'px';
+  const g = document.createElement('div'); g.className = 'g'; s.append(g); cells.append(s);
+  gl.push(attach(g, { source: s, mode, blur, frost: Number(q.get('frost') || frost), radius: 24, fill: 'rgba(255,255,255,.1)' }));
+});
+const hack = q.get('hack');
+if (hack) setTimeout(() => document.querySelectorAll('.g > div:first-child').forEach(l => { if (hack === 'wc') l.style.willChange = 'transform'; if (hack === 'z') l.style.transform = 'translateZ(0)'; if (hack === 'iso') { l.style.isolation = 'isolate'; l.style.willChange = 'filter'; } if (hack === 'wf') l.style.willChange = 'filter'; }), 500);
+setTimeout(() => { document.getElementById('result').textContent = JSON.stringify(gl.map(g => g.state.mode)); }, 2500);
+</script>

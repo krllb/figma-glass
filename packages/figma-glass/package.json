@@ -1,0 +1,52 @@
+{
+  "name": "figma-glass",
+  "version": "0.1.0",
+  "description": "Figma's Glass effect for the web: the panel's parameters carry over one to one.",
+  "keywords": [
+    "figma",
+    "glass",
+    "liquid-glass",
+    "glassmorphism",
+    "backdrop-filter",
+    "refraction",
+    "svg-filter"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Kirill B.",
+    "url": "https://krllb.com"
+  },
+  "homepage": "https://glass.krllb.com",
+  "bugs": "https://github.com/krllb/figma-glass/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/krllb/figma-glass.git",
+    "directory": "packages/figma-glass"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./src/index.d.ts",
+  "files": [
+    "src",
+    "llms.txt",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "check": "publint --strict && attw --pack . --profile esm-only"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "publint": "^0.3.25"
+  }
+}

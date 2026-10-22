@@ -1,0 +1,76 @@
+<!doctype html><meta charset="utf-8">
+<style>
+body{margin:0;font:16px sans-serif;background:#fff;height:3000px}
+#src{position:relative;width:600px;padding:20px;background:linear-gradient(90deg,#f80,#08f);min-height:900px}
+.g{position:absolute;width:200.5px;height:80px}
+#bg{position:fixed;left:0;top:0;width:100vw;height:100vh;background:repeating-linear-gradient(0deg,#0001 0 10px,#0000 10px 20px)}
+#sticky{position:sticky;top:0;background:#ff0;height:30px}
+#box{width:40px;height:40px;background:#000;transition:transform .5s linear}
+#box.moved{transform:translateX(120px)}
+</style>
+<div id="src">
+ <div id="bg"></div>
+ <div id="sticky">sticky</div>
+ <p id="txt">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore</p>
+ <div id="box"></div><div id="waapi" style="width:40px;height:20px;background:#0a0"></div>
+ <label><input type="radio" name="r" value="a">A</label><label><input type="radio" name="r" value="b" checked>B</label>
+ <input id="field" value="x">
+ <x-thing id="xt"><b>custom</b></x-thing>
+ <audio id="au"></audio>
+ <div class="g" id="g1" style="position:fixed;left:30px;top:10px;height:220px"></div>
+ <div class="g" id="g2" style="left:300px;top:200px;border:3px solid #fff8"></div>
+</div>
+<pre id="result" style="font:14px monospace;white-space:pre-wrap;word-break:break-all;width:1200px"></pre>
+<script type="importmap">{"imports":{"figma-glass":"../../packages/figma-glass/src/index.js"}}</script>
+<script type="module">
+import { attach } from 'figma-glass';
+const R = {}, $ = id => document.getElementById(id), src = $('src');
+let connects = 0; customElements.define('x-thing', class extends HTMLElement { connectedCallback(){ connects++; } });
+let canvases = 0; const ce = document.createElement.bind(document);
+document.createElement = (t, ...a) => { if (String(t).toLowerCase() === 'canvas') canvases++; return ce(t, ...a); };
+const warns = []; const cw = console.warn; console.warn = (...a) => { warns.push(a.join(' ')); cw(...a); };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const frames = n => new Promise(r => { const f = () => --n ? requestAnimationFrame(f) : r(); requestAnimationFrame(f); });
+const copyOf = (g, sel, pred) => [...document.querySelectorAll(`#${g} [data-glass-clone] ${sel}`)].find(pred || (() => true));
+const r2 = r => [r.left, r.top, r.width].map(v => Math.round(v * 10) / 10);
+const g1 = attach($('g1'), { source: src, mode: 'mirror', frost: 0 });
+const g2 = attach($('g2'), { source: src, mode: { chromium: 'mirror', webkit: 'mirror' }, frost: 0 });
+await wait(800);
+const connects0 = connects;
+// scroll: fixed and sticky
+window.scrollTo(0, 400); await frames(5);
+const bgC = copyOf('g1', 'div', d => d.getAttribute('style') && d.getAttribute('style').includes('absolute') && d.children.length === 0 && d.textContent === '' && d.offsetHeight > 500);
+ R.divs = [...document.querySelectorAll('#g1 [data-glass-clone] > div')].map(d => (d.getAttribute('style')||'').slice(0,120) + ' h=' + d.offsetHeight);
+R.fixed = { orig: r2($('bg').getBoundingClientRect()), copy: bgC && r2(bgC.getBoundingClientRect()) };
+const stC = copyOf('g1', 'div', d => d.textContent === 'sticky');
+R.sticky = { orig: r2($('sticky').getBoundingClientRect()), copy: stC && r2(stC.getBoundingClientRect()) };
+window.scrollTo(0, 0); await frames(5);
+// animations started after build: class transition and WAAPI
+$('box').classList.add('moved'); $('waapi').animate([{ transform: 'translateY(0)' }, { transform: 'translateY(30px)' }], { duration: 2000, fill: 'forwards' });
+await wait(250); await frames(2);
+const boxC = copyOf('g1', 'div', d => d.getAttribute('class') === 'moved');
+R.transition = { orig: getComputedStyle($('box')).transform, copy: boxC && getComputedStyle(boxC).transform };
+const wC = copyOf('g1', 'div', d => (d.getAttribute('style') || '').includes('#0a0') || (d.getAttribute('style') || '').includes('rgb(0, 170, 0)'));
+R.waapi = { orig: getComputedStyle($('waapi')).transform, copy: wC && getComputedStyle(wC).transform };
+// typing
+$('field').value = 'typed'; $('field').dispatchEvent(new Event('input', { bubbles: true })); await frames(2);
+R.field = copyOf('g1', 'input', i => i.type === 'text')?.value;
+// fractional width alignment (g1 is 200.5px) and border (g2)
+const tC1 = copyOf('g1', 'p'), tC2 = copyOf('g2', 'p');
+R.align = { orig: r2($('txt').getBoundingClientRect()), g1: r2(tC1.getBoundingClientRect()), g2border: r2(tC2.getBoundingClientRect()) };
+R.radioB = document.querySelector('input[value=b]').checked;
+R.customConnectsAfterBuild = connects - connects0; R.customStandIn = !!copyOf('g1', 'span', s => s.textContent === 'custom');
+R.audioStandIn = !copyOf('g1', 'audio');
+// cache: frost change should not create canvases
+const c0 = canvases; g1.update({ frost: 6 }); await frames(3); R.canvasesOnFrostUpdate = canvases - c0;
+const c1 = canvases; g1.update({ lightAngle: 30 }); await frames(3); R.canvasesOnLightUpdate = canvases - c1;
+// unknown mode
+g2.update({ mode: 'xyz' }); await frames(3); R.unknownMode = g2.state.mode; R.warn = warns[0];
+// destroy and update after it
+const before = $('g1').getAttribute('style');
+g1.destroy(); g1.update({ frost: 1 }); await frames(3);
+R.destroy = { modeAfter: g1.state.mode, styleRestored: $('g1').getAttribute('style'), layersLeft: $('g1').children.length, attr: $('g1').hasAttribute('data-figma-glass') };
+R.errors = window.__errs || [];
+$('result').textContent = JSON.stringify(R, null, 1);
+</script>
+<script>window.__errs=[];window.addEventListener('error',e=>__errs.push(e.message+' @'+e.lineno));window.addEventListener('unhandledrejection',e=>__errs.push(String(e.reason)));</script>

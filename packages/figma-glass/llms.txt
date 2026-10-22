@@ -1,0 +1,50 @@
+# figma-glass
+
+> Figma's Glass effect for the web. The values from Figma's Glass panel carry over one to one:
+> refraction, depth, dispersion, frost, splay and light, calibrated against Figma's own exports.
+> Plain ESM, no dependencies, no framework; types in `src/index.d.ts`.
+
+## Use
+
+```js
+import { attach } from 'figma-glass';
+
+// Figma panel: Light −45° 80%, Refraction 80, Depth 20, Dispersion 50, Frost 4, Splay 0
+const glass = attach(element, {
+  lightAngle: -45, lightIntensity: 0.8,
+  refraction: 0.8, depth: 20, dispersion: 0.5, frost: 4, splay: 0,
+  radius: 16, fill: 'rgba(255,255,255,.2)',
+  source: heroElement,        // the block under the glass
+  mode: { webkit: 'mirror' }, // refraction in Safari
+});
+glass.update({ frost: 10 });
+glass.destroy();
+```
+
+- Percent values from the panel become 0..1 (Refraction 80 → 0.8, Light 80% → 0.8); Depth, Frost and
+  corner radius stay in px; Light angle stays in degrees.
+- `fill` is the layer's fill from Figma; it is painted over the glass. `radius: 9999` makes a pill.
+- The element keeps its own content on top; `attach` sets `position: relative` (when static),
+  `isolation` and `border-radius` on it and puts its layers first inside it.
+- Call `attach` in the browser after the element is mounted (in React: in `useEffect`, and
+  `destroy()` in the cleanup). Importing the module on the server is safe.
+- The calibration options (`bevel`, `frostScale`, `soften`, `dispersionScale`) stay at their defaults.
+
+## Browsers
+
+- Chromium (Chrome, Edge, Opera): `backdrop-filter`, reads the backdrop itself; `source` is not needed.
+- Safari and every browser on iOS: `auto` gives frost and light without refraction. Refraction takes
+  `mode: { webkit: 'mirror' }` plus `source`: a live copy of `source` is rendered under the glass.
+  Point `source` at the block the glass covers, not the page: animations under the glass are cheap
+  (60 fps), but adding or removing elements inside `source` rebuilds the copy (a 1500-row page as
+  `source`: 27 fps with an element added and removed every frame).
+- Firefox: refraction through `-moz-element()` only when the glass is outside `source`; otherwise frost
+  and light. Not yet verified.
+- `glass.state.mode` tells which engine runs: `backdrop`, `element`, `mirror`, `fallback` or `off`.
+
+## Docs
+
+- [README](https://github.com/krllb/figma-glass/tree/main/packages/figma-glass#readme): options, browsers, Safari
+- [Types](https://github.com/krllb/figma-glass/blob/main/packages/figma-glass/src/index.d.ts): every option with its Figma mapping
+- [SPEC](https://github.com/krllb/figma-glass/blob/main/docs/SPEC.md): the math, the engines and the calibration
+- [Playground](https://glass.krllb.com/playground): try values against live content

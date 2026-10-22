@@ -1,0 +1,21 @@
+{
+  "framework": null,
+  "installCommand": "",
+  "buildCommand": "",
+  "outputDirectory": ".",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/site/index.html"
+    },
+    {
+      "source": "/:page(playground|diag)",
+      "destination": "/site/:page.html"
+    },
+    {
+      "source": "/llms.txt",
+      "destination": "/packages/figma-glass/llms.txt"
+    }
+  ]
+}
