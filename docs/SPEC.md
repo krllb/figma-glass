@@ -121,7 +121,12 @@ The reference is a calibration frame in Figma; the comparison scripts are in `re
 - Frost is exact (convolution) up to σ 12 device px: frost ≈ 28 at 1x, ≈ 14 at 2x. Above that
   `feGaussianBlur` with Skia's steps; the step table was measured in headless Chromium with software
   raster and may differ on the GPU.
-- Firefox (`element`) is not checked.
+- Firefox 158, checked headless through Marionette on 2026-10-22 (`research/firefox/`):
+  - `element` (glass beside its source) and `mirror` both refract, light and frost like Chromium: mean
+    difference 2.6–4.0 levels on a checkerboard at frost 4 / 10 / 20, 1x;
+  - the mirror stands pass as in Safari (fixed and sticky, animations, typing, no rebuilds);
+  - speed, headless at 120 Hz: mirror 120 fps, frost 20 74, a node added and removed every frame under a
+    1500-row `source` 45.
 - Safari 26.2 (`mirror`), checked through `safaridriver` on a Mac on 2026-10-22, stands in
   `research/safari/`:
   - `backdrop-filter: url()` passes `CSS.supports` but paints nothing, so `auto` picks fallback and

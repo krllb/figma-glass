@@ -9,11 +9,14 @@ before changing the math or an engine: it records what was measured and why the 
 | --- | --- |
 | `packages/figma-glass/src/index.js` | the whole library, plain ESM, published as is (no build) |
 | `packages/figma-glass/src/index.d.ts` | hand-written types; keep them in step with the runtime |
+| `packages/figma-glass/src/react.js` | `<Glass>` for React (`figma-glass/react`), `createElement`, no JSX, no build |
 | `packages/figma-glass/llms.txt` | the usage guide for agents; ships in the package, served at `/llms.txt` |
 | `site/` | landing page, playground, Safari diagnostics; they import the package through an import map |
 | `docs/SPEC.md` | math, engines, calibration, browser findings |
 | `research/calib/` | calibration scripts against Figma's exports |
 | `research/safari/` | stands for real Safari through `safaridriver` |
+| `research/firefox/` | `ff.py`: the same stands in headless Firefox through Marionette |
+| `research/react/` | the React component against React from esm.sh, StrictMode included |
 
 ## Commands
 
@@ -27,7 +30,7 @@ before changing the math or an engine: it records what was measured and why the 
 - The module must touch no browser API at import time: it is imported during server rendering.
 - Chromium's `backdrop` engine is the reference: a change to the math or the filter graph is checked
   against it in pixels (`research/calib/`); a change to `mirror` is checked in real Safari
-  (`research/safari/`), not in a headless WebKit.
+  (`research/safari/`), not in a headless WebKit, and in Firefox (`research/firefox/`).
 - Measured browser behaviour goes into `docs/SPEC.md` with the numbers.
 - Comments explain why, in the voice of the surrounding code; no comment for what the code already says.
 - Public API changes: update `index.d.ts`, the package README, `llms.txt` and `CHANGELOG.md` together.

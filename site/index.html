@@ -98,6 +98,8 @@
   .support span { color: var(--muted); font-size: 14px; }
   .links { margin-top: 24px; color: var(--muted); font-size: 14px; }
   .links a { color: var(--ink); margin-right: 16px; }
+  .credit { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+  .credit a { color: var(--ink); }
 
   @media (max-width: 760px) {
     .page { padding-top: 32px; }
@@ -109,7 +111,7 @@
 <body>
 <div class="page">
   <h1>Figma’s<br>Glass effect</h1>
-  <p class="lead">A close web implementation of Figma’s Glass, built from Figma’s own math. Brilliant in Chrome, decent in Safari, very sad in Firefox.</p>
+  <p class="lead">A close web implementation of Figma’s Glass, built from Figma’s own math. Chrome, Safari and Firefox within a few levels of each other.</p>
 
   <section class="preview">
     <div>
@@ -163,11 +165,12 @@
 
   <h3>Browsers</h3>
   <div class="support">
-    <div><b>Chrome, Edge</b><span>Through <code>backdrop-filter</code>. Within a level or two of Figma’s pixels.</span></div>
-    <div><b>Safari</b><span>Frost and light by default. Refraction with <code>mode: 'mirror'</code>, which renders a live copy of the source under the glass.</span></div>
-    <div><b>Firefox</b><span>Through <code>-moz-element()</code>. The least faithful of the three.</span></div>
+    <div><b>Chrome, Edge</b><span>Through <code>backdrop-filter</code>. Within a level or two of Figma’s pixels; the reference for the other two.</span></div>
+    <div><b>Safari</b><span>Frost and light by default. Refraction with <code>mode: 'mirror'</code>, which renders a live copy of the source under the glass. Within 2–3 levels of Chrome.</span></div>
+    <div><b>Firefox</b><span>Through <code>-moz-element()</code> when the glass sits beside its source, otherwise <code>mode: 'mirror'</code>. Within 3–4 levels of Chrome.</span></div>
   </div>
-  <p class="links"><a href="https://www.npmjs.com/package/figma-glass">npm</a><a href="playground.html">Playground</a><a href="diag.html">Diagnostics</a></p>
+  <p class="links"><a href="https://www.npmjs.com/package/figma-glass">npm</a><a href="https://github.com/krllb/figma-glass">GitHub</a><a href="playground.html">Playground</a><a href="diag.html">Diagnostics</a></p>
+  <footer class="credit">Made by <a href="https://krllb.com">Kirill B.</a> Not affiliated with Figma.</footer>
 </div>
 
 <script type="importmap">{ "imports": { "figma-glass": "../packages/figma-glass/src/index.js" } }</script>
@@ -222,23 +225,22 @@
 ${pad}refraction: ${r(o.refraction)}, depth: ${r(o.depth)}, dispersion: ${r(o.dispersion)},
 ${pad}frost: ${r(o.frost)}, splay: ${r(o.splay)}, radius: ${pill() ? 9999 : r(o.radius)},${o.mode === 'auto' ? '' : `
 ${pad}mode: '${o.mode}',`}`;
+    // React takes the same values as props.
+    const props = [['lightAngle', r(o.lightAngle)], ['lightIntensity', r(o.lightIntensity)], ['refraction', r(o.refraction)],
+      ['depth', r(o.depth)], ['dispersion', r(o.dispersion)], ['frost', r(o.frost)], ['splay', r(o.splay)],
+      ['radius', pill() ? 9999 : r(o.radius)]].map(([k, v]) => `  ${k}={${v}}`);
+    if (o.mode !== 'auto') props.push(`  mode="${o.mode}"`);
     code.textContent = flavour === 'js' ? `import { attach } from 'figma-glass';
 
 attach(document.getElementById('glass'), {
 ${values('  ')}
-});` : `import { useEffect, useRef } from 'react';
-import { attach } from 'figma-glass';
+});` : `import { Glass } from 'figma-glass/react';
 
-export function Glass({ children, ...props }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const glass = attach(ref.current, {
-${values('      ')}
-    });
-    return () => glass.destroy();
-  }, []);
-  return <div ref={ref} {...props}>{children}</div>;
-}`;
+<Glass
+${props.join('\n')}
+>
+  Glass
+</Glass>`;
   }
   showPm(pm); showFlavour(flavour); showInstall();
 
