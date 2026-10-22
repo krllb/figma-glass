@@ -26,6 +26,30 @@ glass.update({ frost: 10 });
 glass.destroy();
 ```
 
+## React
+
+```jsx
+import { useRef } from 'react';
+import { Glass } from 'figma-glass/react';
+
+function Hero() {
+  const hero = useRef(null);
+  return (
+    <section ref={hero}>
+      <Glass as="button" refraction={0.8} depth={20} dispersion={0.5} frost={4} lightAngle={-45}
+        lightIntensity={0.8} radius={9999} fill="rgba(255,255,255,.2)" source={hero}
+        mode={{ webkit: 'mirror' }}>
+        Buy
+      </Glass>
+    </section>
+  );
+}
+```
+
+The glass props are the options below; the rest go to the element (`as`, `className`, handlers, a
+`ref`). `source` takes an element or a ref. A changed glass prop updates the glass; a re-render with the
+same props does nothing. React 18 or later; the module is marked `'use client'` for Next.js.
+
 ## From the Figma panel
 
 | Figma panel | Option | Example |
@@ -46,7 +70,7 @@ glass.destroy();
 | --- | --- | --- |
 | Chromium (Chrome, Edge, Opera) | `backdrop-filter` with an SVG filter | within a level or two of Figma's pixels |
 | WebKit (Safari, every browser on iOS) | frost and light; refraction with `mode: 'mirror'` | mirror renders a live copy of `source` under the glass |
-| Gecko (Firefox) | `-moz-element()` when the glass is outside `source`, otherwise frost and light | not yet verified |
+| Gecko (Firefox) | `-moz-element()` when the glass is outside `source`, otherwise frost and light; refraction inside it with `mode: { gecko: 'mirror' }` | within 3–4 levels of Chromium |
 
 Mirror copies `source`'s DOM under every glass, so keep `source` to the part of the page the glass
 actually covers. The copy follows edits, animations, scrolling, typing, fixed and sticky elements, video
@@ -84,6 +108,8 @@ attach(el, { source: document.getElementById('hero'), mode: { webkit: 'mirror' }
 ## Server rendering
 
 The module touches no browser API on import. Call `attach` on the client, after the element is mounted.
+The element's content may be rewritten freely (a framework setting `textContent` included): the glass
+puts its layers back.
 
 ## License
 

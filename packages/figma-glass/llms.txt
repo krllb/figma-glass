@@ -26,8 +26,12 @@ glass.destroy();
 - `fill` is the layer's fill from Figma; it is painted over the glass. `radius: 9999` makes a pill.
 - The element keeps its own content on top; `attach` sets `position: relative` (when static),
   `isolation` and `border-radius` on it and puts its layers first inside it.
-- Call `attach` in the browser after the element is mounted (in React: in `useEffect`, and
-  `destroy()` in the cleanup). Importing the module on the server is safe.
+- Call `attach` in the browser after the element is mounted, `destroy()` on unmount. Importing the
+  module on the server is safe.
+- React: `import { Glass } from 'figma-glass/react'` and pass the same options as props, plus `as`,
+  `className` and the rest for the element; `source` takes a ref:
+  `<Glass refraction={0.8} depth={20} frost={4} radius={9999} source={heroRef} mode={{ webkit: 'mirror' }}>Buy</Glass>`.
+  A re-render with the same props does not touch the glass.
 - The calibration options (`bevel`, `frostScale`, `soften`, `dispersionScale`) stay at their defaults.
 
 ## Browsers
@@ -38,8 +42,8 @@ glass.destroy();
   Point `source` at the block the glass covers, not the page: animations under the glass are cheap
   (60 fps), but adding or removing elements inside `source` rebuilds the copy (a 1500-row page as
   `source`: 27 fps with an element added and removed every frame).
-- Firefox: refraction through `-moz-element()` only when the glass is outside `source`; otherwise frost
-  and light. Not yet verified.
+- Firefox: refraction through `-moz-element()` when the glass is outside `source` (a sibling over it);
+  inside `source` it needs `mode: { gecko: 'mirror' }`, otherwise frost and light. Close to Chromium.
 - `glass.state.mode` tells which engine runs: `backdrop`, `element`, `mirror`, `fallback` or `off`.
 
 ## Docs
