@@ -597,6 +597,12 @@ function attach(node, options) {
   node.style.isolation = 'isolate';
   node.setAttribute('data-figma-glass', '');
   node.prepend(layer, light, fill);
+  // Frameworks write text through textContent (React with a single text child), which removes every
+  // child, the glass's layers too: put them back before the frame is painted.
+  const keep = new MutationObserver(() => {
+    if (layer.parentNode !== node || light.parentNode !== node || fill.parentNode !== node) node.prepend(layer, light, fill);
+  });
+  keep.observe(node, { childList: true });
   const state = { mode: null, bakeMs: 0, primitives: 0 };
   let raf = 0, loop = 0, size = [0, 0], pad = 0, mirror = null, renders = 0, gen = 0, flip = false;
   let destroyed = false, visible = true, observed = null, named = null;
@@ -810,7 +816,7 @@ function attach(node, options) {
     destroy() {
       if (destroyed) return;
       destroyed = true;
-      ro.disconnect(); io.disconnect();
+      ro.disconnect(); io.disconnect(); keep.disconnect();
       density.removeEventListener('change', onDensity);
       cancelAnimationFrame(raf); cancelAnimationFrame(loop);
       state.mode = null;
