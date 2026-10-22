@@ -1,9 +1,16 @@
 # Publishes on a v* tag through npm trusted publishing (OIDC): no token in the repo.
 # On npmjs.com, add this repository and workflow as the package's trusted publisher first.
+# The first release, before the package existed, went by hand: gh workflow run publish.yml -f otp=<code>,
+# with the NPM_TOKEN secret and a one-time code from the npm account's 2FA app.
 name: Publish
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      otp:
+        description: One-time code from the npm account's 2FA app
+        required: false
 permissions:
   contents: read
   id-token: write
@@ -23,10 +30,19 @@ jobs:
       # Trusted publishing needs npm 11.5.1 or later.
       - run: npm install -g npm@latest
       - name: Tag matches the package version
+        if: github.event_name == 'push'
         run: test "v$(node -p "require('./packages/figma-glass/package.json').version")" = "$GITHUB_REF_NAME"
-      - run: npm publish
+      # A tag pushed for a version that is already out (the hand-published first release) is not an error.
+      - name: Version not on npm yet
+        id: fresh
+        run: |
+          v=$(node -p "require('./packages/figma-glass/package.json').version")
+          if npm view "figma-glass@$v" version >/dev/null 2>&1; then echo "publish=false" >> "$GITHUB_OUTPUT"
+          else echo "publish=true" >> "$GITHUB_OUTPUT"; fi
+      - run: npm publish ${OTP:+--otp "$OTP"}
+        if: steps.fresh.outputs.publish == 'true'
         working-directory: packages/figma-glass
-        # The first release only: trusted publishing can be set up once the package exists. Remove with
-        # the NPM_TOKEN secret after that.
         env:
+          OTP: ${{ inputs.otp }}
+          # The first release only: remove with the NPM_TOKEN secret once trusted publishing is set up.
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
