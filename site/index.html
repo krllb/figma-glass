@@ -164,7 +164,7 @@
   <h3>Use it</h3>
   <div class="tabs" id="flavour"><button data-flavour="js">JavaScript</button><button data-flavour="react">React</button></div>
   <pre id="code"></pre>
-  <p class="note">The values come straight from Figma’s Glass panel: percentages become 0..1, pixels stay pixels. In Safari, refraction needs <code>mode: { webkit: 'mirror' }</code> and a <code>source</code>: the block right under the glass.</p>
+  <p class="note">The values come straight from Figma’s Glass panel: percentages become 0..1, pixels stay pixels. Chrome reads whatever is behind the glass. Safari and Firefox refract a live copy of <code>source</code>, so point it at the block right under the glass, not the whole page; <code>mode</code> turns that copy on for them. Without it they show frost and light, no refraction.</p>
 
   <h3>Browsers</h3>
   <div class="support">
@@ -224,27 +224,40 @@
   function showInstall() { document.getElementById('install').textContent = COMMANDS[pm]; }
   function showCode() {
     const o = glass.options, r = v => Math.round(v * 100) / 100;
+    // The preview's own engine when one is picked; otherwise what a page wants: refraction everywhere.
+    const mode = o.mode === 'auto' ? "{ webkit: 'mirror', gecko: 'mirror' }" : `'${o.mode}'`;
     const values = (pad) => `${pad}lightAngle: ${r(o.lightAngle)}, lightIntensity: ${r(o.lightIntensity)},
 ${pad}refraction: ${r(o.refraction)}, depth: ${r(o.depth)}, dispersion: ${r(o.dispersion)},
-${pad}frost: ${r(o.frost)}, splay: ${r(o.splay)}, radius: ${pill() ? 9999 : r(o.radius)},${o.mode === 'auto' ? '' : `
-${pad}mode: '${o.mode}',`}`;
+${pad}frost: ${r(o.frost)}, splay: ${r(o.splay)}, radius: ${pill() ? 9999 : r(o.radius)},`;
     // React takes the same values as props.
     const props = [['lightAngle', r(o.lightAngle)], ['lightIntensity', r(o.lightIntensity)], ['refraction', r(o.refraction)],
       ['depth', r(o.depth)], ['dispersion', r(o.dispersion)], ['frost', r(o.frost)], ['splay', r(o.splay)],
-      ['radius', pill() ? 9999 : r(o.radius)]].map(([k, v]) => `  ${k}={${v}}`);
-    if (o.mode !== 'auto') props.push(`  mode="${o.mode}"`);
+      ['radius', pill() ? 9999 : r(o.radius)]].map(([k, v]) => `        ${k}={${v}}`);
     code.textContent = flavour === 'js' ? `import { attach } from 'figma-glass';
 
 attach(document.getElementById('glass'), {
 ${values('  ')}
-});` : `import { Glass } from 'figma-glass/react';
+  source: document.getElementById('hero'), // the block under the glass
+  mode: ${mode},
+});` : `import { useRef } from 'react';
+import { Glass } from 'figma-glass/react';
 
-<Glass
+function Hero() {
+  const hero = useRef(null); // the block under the glass
+  return (
+    <section ref={hero}>
+      <Glass
 ${props.join('\n')}
->
-  Glass
-</Glass>`;
+        source={hero}
+        mode={${mode}}
+      >
+        Glass
+      </Glass>
+    </section>
+  );
+}`;
   }
+
   showPm(pm); showFlavour(flavour); showInstall();
 
   // Each property has a slider and a field, like Figma's panel; both write the same option.
