@@ -7,11 +7,11 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/site/index.html"
+      "destination": "/site"
     },
     {
       "source": "/:page(playground|diag)",
-      "destination": "/site/:page.html"
+      "destination": "/site/:page"
     },
     {
       "source": "/llms.txt",
