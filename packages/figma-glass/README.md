@@ -17,9 +17,10 @@ const glass = attach(document.getElementById('glass'), {
   lightAngle: -45, lightIntensity: 0.8,
   refraction: 0.8, depth: 20, dispersion: 0.5, frost: 4, splay: 0,
   radius: 16,
-  // What lies under the glass. Chromium reads the backdrop itself; Safari and Firefox refract only
-  // a source: see Browsers.
+  // The block under the glass. Chrome reads the backdrop itself; Safari and Firefox refract a live
+  // copy of this block, which mode turns on for them. See Browsers.
   source: document.getElementById('hero'),
+  mode: { webkit: 'mirror', gecko: 'mirror' },
 });
 
 glass.update({ frost: 10 });
@@ -38,7 +39,7 @@ function Hero() {
     <section ref={hero}>
       <Glass as="button" refraction={0.8} depth={20} dispersion={0.5} frost={4} lightAngle={-45}
         lightIntensity={0.8} radius={9999} fill="rgba(255,255,255,.2)" source={hero}
-        mode={{ webkit: 'mirror' }}>
+        mode={{ webkit: 'mirror', gecko: 'mirror' }}>
         Buy
       </Glass>
     </section>
@@ -96,11 +97,15 @@ Point `source` at the block right under the glass, not at the page. Measured in 
 - Frost is exact up to about 10; above that the copy is blurred with CSS, which keeps 60 fps within a
   few levels of Chrome.
 
-Pick the engine per browser, or let `auto` choose:
+Pick the engine per browser, or let `auto` choose. Without `mode`, Safari, and Firefox when the glass
+sits inside `source`, show frost and light only:
 
 ```js
-attach(el, { source: document.getElementById('hero'), mode: { webkit: 'mirror' } });
+attach(el, { source: document.getElementById('hero'), mode: { webkit: 'mirror', gecko: 'mirror' } });
 ```
+
+When the glass sits beside its source rather than inside it (a sibling laid over it), Firefox refracts
+through `-moz-element()` on `auto`, and `gecko` can be left out.
 
 `mode` is `auto`, one of `backdrop`, `element`, `mirror`, `fallback`, `off`, or an object keyed by
 `chromium`, `webkit`, `gecko` (a missing key is `auto`). `glass.state.mode` tells which one runs.

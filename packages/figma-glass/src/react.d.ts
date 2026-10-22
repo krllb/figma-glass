@@ -18,7 +18,7 @@ export type GlassProps = Partial<Omit<GlassOptions, 'source'>> & Omit<HTMLAttrib
  *
  * @example
  * <Glass refraction={0.8} depth={20} dispersion={0.5} frost={4} lightAngle={-45} lightIntensity={0.8}
- *   radius={9999} fill="rgba(255,255,255,.2)" source={heroRef} mode={{ webkit: 'mirror' }}>
+ *   radius={9999} fill="rgba(255,255,255,.2)" source={heroRef} mode={{ webkit: 'mirror', gecko: 'mirror' }}>
  *   Buy
  * </Glass>
  */

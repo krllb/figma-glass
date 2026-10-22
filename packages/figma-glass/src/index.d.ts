@@ -9,7 +9,7 @@
  *   lightAngle: -45, lightIntensity: 0.8, refraction: 0.8, depth: 20, dispersion: 0.5, frost: 4,
  *   splay: 0, radius: 16, fill: 'rgba(255,255,255,.2)',
  *   source: document.getElementById('hero'), // the block under the glass, for Safari and Firefox
- *   mode: { webkit: 'mirror' },              // refraction in Safari; omit for frost and light only
+ *   mode: { webkit: 'mirror', gecko: 'mirror' }, // refraction in Safari and Firefox; omit for frost and light only
  * });
  * glass.update({ frost: 10 });
  * glass.destroy(); // on unmount

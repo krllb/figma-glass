@@ -14,8 +14,8 @@ const glass = attach(element, {
   lightAngle: -45, lightIntensity: 0.8,
   refraction: 0.8, depth: 20, dispersion: 0.5, frost: 4, splay: 0,
   radius: 16, fill: 'rgba(255,255,255,.2)',
-  source: heroElement,        // the block under the glass
-  mode: { webkit: 'mirror' }, // refraction in Safari
+  source: heroElement,                         // the block under the glass
+  mode: { webkit: 'mirror', gecko: 'mirror' }, // refraction in Safari and Firefox
 });
 glass.update({ frost: 10 });
 glass.destroy();
@@ -30,7 +30,7 @@ glass.destroy();
   module on the server is safe.
 - React: `import { Glass } from 'figma-glass/react'` and pass the same options as props, plus `as`,
   `className` and the rest for the element; `source` takes a ref:
-  `<Glass refraction={0.8} depth={20} frost={4} radius={9999} source={heroRef} mode={{ webkit: 'mirror' }}>Buy</Glass>`.
+  `<Glass refraction={0.8} depth={20} frost={4} radius={9999} source={heroRef} mode={{ webkit: 'mirror', gecko: 'mirror' }}>Buy</Glass>`.
   A re-render with the same props does not touch the glass.
 - The calibration options (`bevel`, `frostScale`, `soften`, `dispersionScale`) stay at their defaults.
 
@@ -44,6 +44,7 @@ glass.destroy();
   `source`: 27 fps with an element added and removed every frame).
 - Firefox: refraction through `-moz-element()` when the glass is outside `source` (a sibling over it);
   inside `source` it needs `mode: { gecko: 'mirror' }`, otherwise frost and light. Close to Chromium.
+- Default to `source` plus `mode: { webkit: 'mirror', gecko: 'mirror' }`: refraction in every browser.
 - `glass.state.mode` tells which engine runs: `backdrop`, `element`, `mirror`, `fallback` or `off`.
 
 ## Docs
